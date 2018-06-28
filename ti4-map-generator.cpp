@@ -8,6 +8,7 @@
 #include <time.h>
 #include <exception>
 #include <cmath>
+#include <iterator>
 
 #include "json.hpp"
 
@@ -217,16 +218,19 @@ class Galaxy
     void create_home_tiles(int n);
     void initialize_grid();
     void place_tile(Location location, Tile*);
+    void swap_tiles(Tile *, Tile *);
     Tile* get_tile_at(Location location);
     list<Tile*> get_adjacent(Tile* t1);
     map<Tile*, float> distance_to_other_tiles(Tile* t1);
     void visit_all(Tile* t1, map<Tile*, float>& visited, float distance);
     double_tile_map calculate_stakes(double_tile_map distances);
+    vector<pair<Tile*, Tile*>> make_swap_list();
 
     public:
     Galaxy(string tile_filename);
     void print_grid();
     float evaluate_grid();
+    void optimize_grid();
 };
 
 Galaxy::Galaxy(string tile_filename)
@@ -568,12 +572,72 @@ float Galaxy::evaluate_grid() {
     return coefficient_of_variation(resource_shares) + coefficient_of_variation(influence_shares);
 }
 
+void Galaxy::swap_tiles(Tile* a, Tile* b)
+{
+    Location a_start = a->get_location();
+    Location b_start = b->get_location();
+
+    place_tile(a_start, b);
+    place_tile(b_start, a);
+}
+
+vector<pair<Tile*, Tile*>> Galaxy::make_swap_list()
+{
+    vector<pair<Tile*, Tile*>> swap_list;
+    for (auto t1 = movable_systems.begin(); t1 != movable_systems.end(); t1++) {
+        auto t2 = t1;
+        advance(t2, 1);
+        for (; t2 != movable_systems.end(); t2++) {
+            swap_list.push_back({*t1, *t2});
+        }
+    }
+    random_shuffle(swap_list.begin(), swap_list.end());
+    return swap_list;
+}
+
+void Galaxy::optimize_grid()
+{
+    float current_score = evaluate_grid();
+    bool better_score_found = 0;
+
+    int n_swaps = 0;
+    int swaps_until_quit = 100;
+
+    do {
+        auto swaps = make_swap_list();
+
+        n_swaps = 0;
+        for (auto swap : swaps) {
+            swap_tiles(swap.first, swap.second);
+            float new_score = evaluate_grid();
+            if (new_score < current_score) {
+                better_score_found = true;
+                current_score = new_score;
+                printf("Swapping tiles %d & %d, new_score: %0.3f\n", 
+                        swap.first->get_number(), swap.second->get_number(), current_score);
+                print_grid();
+                break;
+            } else {
+                swap_tiles(swap.first, swap.second);
+            }
+            n_swaps++;
+            if (n_swaps > swaps_until_quit) {
+                break;
+            }
+        }
+    } while (better_score_found and n_swaps < swaps_until_quit);
+}
+
 int main() {
 
     srand(time(NULL));
 
     Galaxy galaxy("tiles.json");
     float score = galaxy.evaluate_grid();
+    galaxy.print_grid();
+    cout << "Score: " << score << endl;
+    galaxy.optimize_grid();
+    score = galaxy.evaluate_grid();
     galaxy.print_grid();
     cout << "Score: " << score << endl;
 
