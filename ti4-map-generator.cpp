@@ -100,6 +100,7 @@ class Tile
     Anomaly anomaly;
 
     public:
+    Tile(int);
     Tile(int, list<Planet>, Wormhole, Anomaly);
     string get_description_string() const;
     int get_number();
@@ -127,6 +128,12 @@ std::ostream& operator<< (std::ostream &out, Tile const& tile) {
     return out;
 }
 
+Tile::Tile(int n)
+{
+    number = n;
+}
+
+
 Tile::Tile(int n, list<Planet> p, Wormhole w, Anomaly a)
 {
     number = n;
@@ -142,6 +149,8 @@ class Galaxy
     Tile *grid[7][7]; // Locations of tiles
     Tile *mecatol;
     list<Tile*> home_systems;
+    list<Tile*> movable_systems;
+    Tile boundary_tile;
 
     void import_tiles(string tile_filename);
     void create_home_tiles(int n);
@@ -153,6 +162,7 @@ class Galaxy
 };
 
 Galaxy::Galaxy(string tile_filename)
+    : boundary_tile(0)
 {
     import_tiles(tile_filename);
     create_home_tiles(6);
@@ -213,6 +223,7 @@ void Galaxy::import_tiles(string tile_filename)
     json tile_list = tile_json["tiles"];
     for (json::iterator it = tile_list.begin(); it != tile_list.end(); it++) {
         tiles.push_back(create_tile_from_json(it.value()));
+        movable_systems.push_back(&tiles.back());
     }
     
     // Save a pointer to mecatol rex
@@ -231,10 +242,28 @@ void Galaxy::create_home_tiles(int n) {
     }
 }
 
+template <class t>
+list<t> get_shuffled_list(list<t> l) {
+    list<t> new_list;
+    new_list = l;
+    random_shuffle(l.begin(), l.end());
+    return l;
+}
+
 void Galaxy::initialize_grid() {
     for (int i = 0; i < 7;i++) {
         for (int j = 0; j < 7; j++) {
             grid[i][j] = NULL;
+        }
+    }
+    for (int i = 0; i < 3;i++) {
+        for (int j = 4 + i; j < 7; j++) {
+            grid[i][j] = &boundary_tile;
+        }
+    }
+    for (int j = 0; j < 3;j++) {
+        for (int i = 4 + j; i < 7; i++) {
+            grid[i][j] = &boundary_tile;
         }
     }
 
@@ -248,7 +277,27 @@ void Galaxy::initialize_grid() {
         grid[corners[i][0]][corners[i][1]] = it;
         i++;
     }
+
+    // Shuffle tiles
+    vector<Tile*> random_tiles;
+    for (auto it : movable_systems) {
+        random_tiles.push_back(it);
+    }
+    random_shuffle(random_tiles.begin(), random_tiles.end());
+
+    for (int i = 0; i < 7;i++) {
+        for (int j = 0; j < 7; j++) {
+            if (not grid[i][j]) {
+                grid[i][j] = random_tiles.back();
+                random_tiles.pop_back();
+            }
+        }
+    }
+    
+
 }
+
+
 
 void Galaxy::print_grid() {
     int I = 7;
@@ -258,8 +307,8 @@ void Galaxy::print_grid() {
             cout << "  ";
         }
         for (int j = 0; j < J; j++) {
-            if (grid[i][j]) {
-                printf("  %0000d  ", grid[i][j]->get_number());
+            if (grid[i][j] and grid[i][j] != &boundary_tile) {
+                printf(" %02d ", grid[i][j]->get_number());
             } else {
                 cout << "    ";
             }
