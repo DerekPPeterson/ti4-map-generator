@@ -1,4 +1,19 @@
 {
+	"mecatol":
+		{
+			"number": 18,
+			"wormhole": "NO_WORMHOLE",
+			"anomaly": "NO_ANOMALY",
+			"planets": [
+				{
+					"name": "Mecatol Rex",
+					"resources": 1,
+					"influence": 6,
+					"trait": "NO_TRAIT",
+					"tech": "NO_TECH"
+				}
+			]
+		},
 	"tiles": [
 		{
 			"number": 38,
@@ -299,20 +314,6 @@
 			"wormhole": "BETA",
 			"anomaly": "EMPTY",
 			"planets": [
-			]
-		},
-		{
-			"number": 18,
-			"wormhole": "NO_WORMHOLE",
-			"anomaly": "NO_ANOMALY",
-			"planets": [
-				{
-					"name": "Mecatol Rex",
-					"resources": 1,
-					"influence": 6,
-					"trait": "NO_TRAIT",
-					"tech": "NO_TECH"
-				}
 			]
 		},
 		{

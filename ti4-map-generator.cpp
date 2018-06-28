@@ -102,7 +102,12 @@ class Tile
     public:
     Tile(int, list<Planet>, Wormhole, Anomaly);
     string get_description_string() const;
+    int get_number();
 };
+
+int Tile::get_number() {
+    return number;
+}
 
 string Tile::get_description_string() const {
     ostringstream desc;
@@ -135,16 +140,27 @@ class Galaxy
 {
     list<Tile> tiles;
     Tile *grid[7][7]; // Locations of tiles
+    Tile *mecatol;
+    list<Tile*> home_systems;
 
     void import_tiles(string tile_filename);
+    void create_home_tiles(int n);
+    void initialize_grid();
 
     public:
     Galaxy(string tile_filename);
+    void print_grid();
 };
 
 Galaxy::Galaxy(string tile_filename)
 {
     import_tiles(tile_filename);
+    create_home_tiles(6);
+    initialize_grid();
+
+    for (auto i : tiles) {
+        cout << i << endl;
+    }
 }
 
 Planet create_planet_from_json(json j)
@@ -175,7 +191,6 @@ Tile create_tile_from_json(json j)
     }
 
     Tile new_tile = Tile(number, planets, wormhole, anomaly);
-    cerr << new_tile << endl;
     return new_tile;
 }
 
@@ -199,7 +214,58 @@ void Galaxy::import_tiles(string tile_filename)
     for (json::iterator it = tile_list.begin(); it != tile_list.end(); it++) {
         tiles.push_back(create_tile_from_json(it.value()));
     }
+    
+    // Save a pointer to mecatol rex
+    tiles.push_back(create_tile_from_json(tile_json["mecatol"]));
+    mecatol = &tiles.back();
+
     cerr << "Loaded " << tiles.size() << " tiles" << endl;
+}
+
+void Galaxy::create_home_tiles(int n) {
+    for (int i = 0; i < n; i++) {
+        list<Planet> no_planets;
+        Tile new_tile = Tile(-i - 1, no_planets, NO_WORMHOLE, NO_ANOMALY);
+        tiles.push_back(new_tile);
+        home_systems.push_back(&tiles.back());
+    }
+}
+
+void Galaxy::initialize_grid() {
+    for (int i = 0; i < 7;i++) {
+        for (int j = 0; j < 7; j++) {
+            grid[i][j] = NULL;
+        }
+    }
+
+    // Place Mecatol at centre of galaxy
+    grid[3][3] = mecatol;
+
+    // Place home systems // TODO for other counts than 6p
+    int corners[6][2] = {{0,0},{0,3},{3,6},{6,6},{6,3},{3,0}};
+    int i = 0;
+    for (auto it : home_systems) {
+        grid[corners[i][0]][corners[i][1]] = it;
+        i++;
+    }
+}
+
+void Galaxy::print_grid() {
+    int I = 7;
+    int J = 7;
+    for (int i = 0; i < I; i++) {
+        for (int i_pad = 0; i_pad < I - i; i_pad++) {
+            cout << "  ";
+        }
+        for (int j = 0; j < J; j++) {
+            if (grid[i][j]) {
+                printf("  %0000d  ", grid[i][j]->get_number());
+            } else {
+                cout << "    ";
+            }
+        }
+        cout << endl << endl;
+    }
 }
 
 int main() {
@@ -207,6 +273,7 @@ int main() {
     srand(time(NULL));
 
     Galaxy galaxy("tiles.json");
+    galaxy.print_grid();
 
     return 0;
 }
