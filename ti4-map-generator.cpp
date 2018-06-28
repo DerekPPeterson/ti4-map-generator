@@ -92,22 +92,34 @@ typedef struct Planet
     TechColor tech;
 } Planet;
 
+typedef struct Location
+{
+    int i;
+    int j;
+} Location;
+
 class Tile
 {
     int number;
     Wormhole wormhole;
     list<Planet> planets;
     Anomaly anomaly;
+    Location location;
 
     public:
     Tile(int);
     Tile(int, list<Planet>, Wormhole, Anomaly);
     string get_description_string() const;
     int get_number();
+    void set_location(Location);
 };
 
 int Tile::get_number() {
     return number;
+}
+
+void Tile::set_location(Location l) {
+    location = l;
 }
 
 string Tile::get_description_string() const {
@@ -155,6 +167,7 @@ class Galaxy
     void import_tiles(string tile_filename);
     void create_home_tiles(int n);
     void initialize_grid();
+    void place_tile(Location location, Tile*);
 
     public:
     Galaxy(string tile_filename);
@@ -171,6 +184,14 @@ Galaxy::Galaxy(string tile_filename)
     for (auto i : tiles) {
         cout << i << endl;
     }
+}
+
+void Galaxy::place_tile(Location l, Tile* tile) 
+{
+    if (tile) {
+        tile->set_location(l);
+    }
+    grid[l.i][l.j] = tile;
 }
 
 Planet create_planet_from_json(json j)
@@ -253,28 +274,28 @@ list<t> get_shuffled_list(list<t> l) {
 void Galaxy::initialize_grid() {
     for (int i = 0; i < 7;i++) {
         for (int j = 0; j < 7; j++) {
-            grid[i][j] = NULL;
+            place_tile({i, j}, NULL);
         }
     }
     for (int i = 0; i < 3;i++) {
         for (int j = 4 + i; j < 7; j++) {
-            grid[i][j] = &boundary_tile;
+            place_tile({i, j}, &boundary_tile);
         }
     }
     for (int j = 0; j < 3;j++) {
         for (int i = 4 + j; i < 7; i++) {
-            grid[i][j] = &boundary_tile;
+            place_tile({i, j}, &boundary_tile);
         }
     }
 
     // Place Mecatol at centre of galaxy
-    grid[3][3] = mecatol;
+    place_tile({3, 3}, mecatol);
 
     // Place home systems // TODO for other counts than 6p
     int corners[6][2] = {{0,0},{0,3},{3,6},{6,6},{6,3},{3,0}};
     int i = 0;
     for (auto it : home_systems) {
-        grid[corners[i][0]][corners[i][1]] = it;
+        place_tile({corners[i][0], corners[i][1]}, it);
         i++;
     }
 
@@ -288,15 +309,12 @@ void Galaxy::initialize_grid() {
     for (int i = 0; i < 7;i++) {
         for (int j = 0; j < 7; j++) {
             if (not grid[i][j]) {
-                grid[i][j] = random_tiles.back();
+                place_tile({i, j}, random_tiles.back());
                 random_tiles.pop_back();
             }
         }
     }
-    
-
 }
-
 
 
 void Galaxy::print_grid() {
@@ -316,6 +334,11 @@ void Galaxy::print_grid() {
         cout << endl << endl;
     }
 }
+
+//float Galaxy::evaluate_grid() {
+//    float score;
+//    return score;
+//}
 
 int main() {
 
