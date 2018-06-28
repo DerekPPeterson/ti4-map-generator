@@ -1,0 +1,24 @@
+{
+	"tiles": [
+		{
+			"number": 0,
+			"wormhole": "NO_WORMHOLE",
+			"planets": [
+				{
+					"name": "Abyz",
+					"resources": 3,
+					"influence": 0,
+					"trait": "HAZARDOUS",
+					"tech": "NO_TECH"
+				},
+				{
+					"name": "Fria",
+					"resources": 2,
+					"influence": 0,
+					"trait": "HAZARDOUS",
+					"tech": "BLUE"
+				}
+			]
+		}
+	]
+}
