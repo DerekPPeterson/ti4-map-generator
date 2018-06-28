@@ -101,7 +101,26 @@ class Tile
 
     public:
     Tile(int, list<Planet>, Wormhole, Anomaly);
+    string get_description_string() const;
 };
+
+string Tile::get_description_string() const {
+    ostringstream desc;
+    desc << "Tile " << number << " - ";
+    for (auto it = planets.begin(); it != planets.end(); it++) {
+        if (it != planets.begin()) {
+            desc << ", ";
+        }
+        desc << it->name;
+    }
+
+    return desc.str();
+}
+
+std::ostream& operator<< (std::ostream &out, Tile const& tile) {
+    out << tile.get_description_string();
+    return out;
+}
 
 Tile::Tile(int n, list<Planet> p, Wormhole w, Anomaly a)
 {
@@ -156,6 +175,7 @@ Tile create_tile_from_json(json j)
     }
 
     Tile new_tile = Tile(number, planets, wormhole, anomaly);
+    cerr << new_tile << endl;
     return new_tile;
 }
 
