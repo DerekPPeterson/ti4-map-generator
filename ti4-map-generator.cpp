@@ -236,9 +236,9 @@ Galaxy::Galaxy(string tile_filename)
     create_home_tiles(6);
     initialize_grid();
 
-    for (auto i : tiles) {
-        cout << i << endl;
-    }
+    //for (auto i : tiles) {
+    //    cout << i << endl;
+    //}
 }
 
 void Galaxy::place_tile(Location l, Tile* tile) 
@@ -498,6 +498,25 @@ typedef struct Scores
     map<Tile*, float> influence_share;
 } Scores;
 
+float average(list<float> l) 
+{
+    float sum = 0;
+    for (auto it : l) {
+        sum += it;
+    }
+    return sum / l.size();
+}
+
+float coefficient_of_variation(list<float> l) {
+    float sum = 0;
+    float avg = average(l);
+    for (auto it : l) {
+        sum += pow(it - avg, 2);
+    }
+    return sum / l.size() / avg;
+}
+
+
 float Galaxy::evaluate_grid() {
     float score = 0;
     
@@ -508,15 +527,19 @@ float Galaxy::evaluate_grid() {
     }
     double_tile_map stakes = calculate_stakes(distances_from_home_systems);
 
-    for (auto it1 : stakes) {
-        cout << "Stakes in " << it1.first->get_description_string() << endl;
-        for (auto it2 : it1.second) {
-            cout << "\t" << it2.second << " " << it2.first->get_description_string() << endl;
-        }
-    }
+    //for (auto it1 : stakes) {
+    //    cout << "Stakes in " << it1.first->get_description_string() << endl;
+    //    for (auto it2 : it1.second) {
+    //        cout << "\t" << it2.second << " " << it2.first->get_description_string() << endl;
+    //    }
+    //}
 
     Scores scores;
 
+    float total_resources = 0;
+    float total_influence = 0;
+    list<float> resource_shares;
+    list<float> influence_shares;
     for (auto home_system : home_systems) {
         float resource_share = 0;
         float influence_share = 0;
@@ -526,12 +549,23 @@ float Galaxy::evaluate_grid() {
         }
         scores.resource_share[home_system] = resource_share;
         scores.influence_share[home_system] = influence_share;
+
+        resource_shares.push_back(resource_share);
+        influence_shares.push_back(influence_share);
+
+        total_resources += resource_share;
+        total_influence += influence_share;
     }
 
-    for (auto hs: home_systems) {
-        printf("%2.1f %2.1f %s\n", scores.resource_share[hs], scores.influence_share[hs],
-                hs->get_description_string().c_str());
-    }
+    //for (auto hs: home_systems) {
+    //    printf("%2.1f %2.1f %s\n", scores.resource_share[hs], scores.influence_share[hs],
+    //            hs->get_description_string().c_str());
+    //}
+    //printf("%2.1f %2.1f %s\n", total_resources, total_influence, "Totals");
+    //printf("%0.3f %0.3f %s\n", coefficient_of_variation(resource_shares), 
+    //        coefficient_of_variation(influence_shares), "CVs");
+
+    return coefficient_of_variation(resource_shares) + coefficient_of_variation(influence_shares);
 }
 
 int main() {
@@ -539,9 +573,9 @@ int main() {
     srand(time(NULL));
 
     Galaxy galaxy("tiles.json");
+    float score = galaxy.evaluate_grid();
     galaxy.print_grid();
-    galaxy.evaluate_grid();
-    galaxy.print_grid();
+    cout << "Score: " << score << endl;
 
     return 0;
 }
