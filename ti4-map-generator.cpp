@@ -25,7 +25,7 @@ enum PlanetTrait
     HAZARDOUS
 };
 
-map<string, PlanetTrait> trait_key = {
+static map<string, PlanetTrait> trait_key = {
     {"NO_TRAIT", NO_TRAIT},
     {"CULTURAL", CULTURAL},
     {"HAZARDOUS", HAZARDOUS},
@@ -41,7 +41,7 @@ enum TechColor
     YELLOW
 };
 
-map<string, TechColor> tech_key = {
+static map<string, TechColor> tech_key = {
     {"NO_TECH", NO_COLOR},
     {"BLUE", BLUE},
     {"RED", RED},
@@ -57,7 +57,7 @@ enum Wormhole
     DELTA
 };
 
-map<string, Wormhole> wormhole_key = {
+static map<string, Wormhole> wormhole_key = {
     {"NO_WORMHOLE", NO_WORMHOLE},
     {"ALPHA", ALPHA},
     {"BETA", BETA},
@@ -74,7 +74,7 @@ enum Anomaly
     ASTEROID_FIELD
 };
 
-map<string, Anomaly> anomaly_key = {
+static map<string, Anomaly> anomaly_key = {
     {"NO_ANOMALY", NO_ANOMALY},
     {"EMPTY", EMPTY},
     {"GRAVITY_RIFT", GRAVITY_RIFT},
@@ -96,7 +96,16 @@ typedef struct Location
 {
     int i;
     int j;
+
+    Location operator+(Location a) {
+        struct Location new_location;
+        new_location.i = this->i + a.i;
+        new_location.j = this->j + a.j;
+        return new_location;
+    }
 } Location;
+
+
 
 class Tile
 {
@@ -111,15 +120,25 @@ class Tile
     Tile(int, list<Planet>, Wormhole, Anomaly);
     string get_description_string() const;
     int get_number();
+    Wormhole get_wormhole();
     void set_location(Location);
+    Location get_location();
 };
 
 int Tile::get_number() {
     return number;
 }
 
+Wormhole Tile::get_wormhole() {
+    return wormhole;
+}
+
 void Tile::set_location(Location l) {
     location = l;
+}
+
+Location Tile::get_location() {
+    return location;
 }
 
 string Tile::get_description_string() const {
@@ -162,16 +181,22 @@ class Galaxy
     Tile *mecatol;
     list<Tile*> home_systems;
     list<Tile*> movable_systems;
-    Tile boundary_tile;
+    map<Wormhole, list<Tile*>> wormhole_systems;
+    Tile boundary_tile; // used for inaccesable locations in the grid
 
     void import_tiles(string tile_filename);
     void create_home_tiles(int n);
     void initialize_grid();
     void place_tile(Location location, Tile*);
+    Tile* get_tile_at(Location location);
+    list<Tile*> get_adjacent(Tile* t1);
+    map<Tile*, float> distance_to_other_tiles(Tile* t1);
+    void visit_all(Tile* t1, map<Tile*, float>& visited, float distance);
 
     public:
     Galaxy(string tile_filename);
     void print_grid();
+    float evaluate_grid();
 };
 
 Galaxy::Galaxy(string tile_filename)
@@ -244,7 +269,11 @@ void Galaxy::import_tiles(string tile_filename)
     json tile_list = tile_json["tiles"];
     for (json::iterator it = tile_list.begin(); it != tile_list.end(); it++) {
         tiles.push_back(create_tile_from_json(it.value()));
-        movable_systems.push_back(&tiles.back());
+        Tile *added_tile = &tiles.back();
+        movable_systems.push_back(added_tile);
+        if (added_tile->get_wormhole()) {
+            wormhole_systems[added_tile->get_wormhole()].push_back(added_tile);
+        }
     }
     
     // Save a pointer to mecatol rex
@@ -335,16 +364,84 @@ void Galaxy::print_grid() {
     }
 }
 
-//float Galaxy::evaluate_grid() {
-//    float score;
-//    return score;
-//}
+Tile* Galaxy::get_tile_at(Location l) {
+    //TODO different size?
+    if (l.i < 0 or l.i > 6 or l.j < 0 or l.j > 6) {
+        return NULL;
+    }
+    Tile * tile = grid[l.i][l.j];
+    if (tile == &boundary_tile) {
+        return NULL;
+    }
+    return tile;
+}
+
+list<Tile*> Galaxy::get_adjacent(Tile *t1)
+{
+    list<Location> directions = {
+        {0,1}, {1,1}, {1, 0}, {0, -1}, {-1, -1}, {-1, 0}
+    };
+    list<Tile*> adjacent;
+
+    // Get tiles directly adjecent
+    Location start_location = t1->get_location();
+    for (auto it : directions) {
+        Location new_location = start_location + it;
+        Tile* potential_adjacent = get_tile_at(new_location);
+        if (potential_adjacent) {
+            // TODO anomaly rules
+            adjacent.push_back(potential_adjacent);
+        }
+    }
+    // Get connected wormholes
+    if (t1->get_wormhole()) {
+        for(Tile* it : wormhole_systems[t1->get_wormhole()]) {
+            if (it != t1) {
+                adjacent.push_back(it);
+            }
+        }
+    }
+
+    return adjacent;
+};
+
+
+void Galaxy::visit_all(Tile* t, map<Tile*, float>& visited, float distance)
+{
+    //cout << "distance " << distance << " at " << t << " " << t->get_description_string() << endl;
+
+    float move_cost = 1;
+    // If we didn't already visit, or our trip was shorter record distance and keep going
+    if ((not visited.count(t)) or visited[t] > distance) {
+        visited[t] = distance;
+        for(auto adjacent : get_adjacent(t)) {
+            //cout << " Will visit " << adjacent->get_description_string() << endl;
+        }
+        for(auto adjacent : get_adjacent(t)) {
+            visit_all(adjacent, visited, distance + move_cost);
+        }
+    }
+}
+
+map<Tile*, float> Galaxy::distance_to_other_tiles(Tile* t1) {
+    map<Tile*, float> visited;
+    visit_all(t1, visited, 0);
+    return visited;
+}
+
+float Galaxy::evaluate_grid() {
+    float score = 0;
+    auto distance_from_mecatol = distance_to_other_tiles(home_systems.front());
+    return score;
+}
 
 int main() {
 
     srand(time(NULL));
 
     Galaxy galaxy("tiles.json");
+    galaxy.print_grid();
+    galaxy.evaluate_grid();
     galaxy.print_grid();
 
     return 0;
