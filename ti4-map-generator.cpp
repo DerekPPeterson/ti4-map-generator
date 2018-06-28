@@ -231,6 +231,7 @@ class Galaxy
     void print_grid();
     float evaluate_grid();
     void optimize_grid();
+    void write_json(string filename);
 };
 
 Galaxy::Galaxy(string tile_filename)
@@ -628,6 +629,24 @@ void Galaxy::optimize_grid()
     } while (better_score_found and n_swaps < swaps_until_quit);
 }
 
+void Galaxy::write_json(string filename)
+{
+    json j;
+    j["grid"] = json::array();
+    for (int i = 0; i < 7; i++) {
+        auto row = json::array();
+        for (int j = 0; j < 7; j++) {
+            row.push_back(grid[i][j]->get_number());
+        }
+        j["grid"].push_back(row);
+    }
+    
+    ofstream galaxy_output_file;
+    galaxy_output_file.open(filename);
+    galaxy_output_file << j;
+    galaxy_output_file.close();
+}
+
 int main() {
 
     srand(time(NULL));
@@ -640,6 +659,7 @@ int main() {
     score = galaxy.evaluate_grid();
     galaxy.print_grid();
     cout << "Score: " << score << endl;
+    galaxy.write_json("galaxy.json");
 
     return 0;
 }
