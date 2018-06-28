@@ -19,13 +19,15 @@ using namespace std;
 
 enum PlanetTrait
 {
+    NO_TRAIT,
     CULTURAL,
     INDUSTRIAL,
     HAZARDOUS
 };
 
 map<string, PlanetTrait> trait_key = {
-    {"CLUTURAL", CULTURAL},
+    {"NO_TRAIT", NO_TRAIT},
+    {"CULTURAL", CULTURAL},
     {"HAZARDOUS", HAZARDOUS},
     {"INDUSTRIAL", INDUSTRIAL}
 };
@@ -40,7 +42,7 @@ enum TechColor
 };
 
 map<string, TechColor> tech_key = {
-    {"NONE", NO_COLOR},
+    {"NO_TECH", NO_COLOR},
     {"BLUE", BLUE},
     {"RED", RED},
     {"GREEN", GREEN},
@@ -113,10 +115,26 @@ Planet create_planet_from_json(json j)
     new_planet.resources = j["resources"];
     new_planet.influence = j["influence"];
 
-    new_planet.trait = trait_key[j["trait"]];
-    new_planet.tech = tech_key[j["tech"]];
+    new_planet.trait = trait_key.at(j["trait"]);
+    new_planet.tech = tech_key.at(j["tech"]);
 
     return new_planet;
+}
+
+Tile create_tile_from_json(json j)
+{
+    int number = j["number"];
+    Wormhole wormhole = wormhole_key.at(j["wormhole"]);
+
+    // Create planet list
+    json planet_list = j["planets"];
+    list<Planet> planets;
+    for (json::iterator it = planet_list.begin(); it != planet_list.end(); it++) {
+        planets.push_back(create_planet_from_json(it.value()));
+    }
+
+    Tile new_tile = Tile(number, planets, wormhole);
+    return new_tile;
 }
 
 void Galaxy::import_tiles(string tile_filename)
@@ -125,24 +143,21 @@ void Galaxy::import_tiles(string tile_filename)
     // TODO error handle parse errors file not exist etc
     json tile_json;
     ifstream json_file;
+    cerr << "Importing tiles from " << tile_filename << endl;
     json_file.open(tile_filename);
-    json_file >> tile_json;
+    try {json_file >> tile_json;} 
+    catch (...) {
+        cerr << "Error loading/parsing " << tile_filename << endl;
+        exit(-1);
+    }
     json_file.close();
 
     // Create list of tiles
     json tile_list = tile_json["tiles"];
     for (json::iterator it = tile_list.begin(); it != tile_list.end(); it++) {
-        json planet_list = it.value()["planets"];
-        list<Planet> planets;
-        for (json::iterator it = planet_list.begin(); it != planet_list.end(); it++) {
-            planets.push_back(create_planet_from_json(it.value()));
-        }
-        int number = it.value()["number"];
-        Wormhole wormhole = wormhole_key[it.value()["wormhole"]];
-        Tile new_tile = Tile(number, planets, wormhole);
-
-        tiles.push_back(new_tile);
+        tiles.push_back(create_tile_from_json(it.value()));
     }
+    cerr << "Loaded " << tiles.size() << " tiles" << endl;
 }
 
 int main() {

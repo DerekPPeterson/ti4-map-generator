@@ -1,8 +1,9 @@
 {
 	"tiles": [
 		{
-			"number": 0,
+			"number": 38,
 			"wormhole": "NO_WORMHOLE",
+			"anomaly": "NO_ANOMALY",
 			"planets": [
 				{
 					"name": "Abyz",
@@ -19,6 +20,464 @@
 					"tech": "BLUE"
 				}
 			]
+		},
+		{
+			"number": 47,
+			"wormhole": "NO_WORMHOLE",
+			"anomaly": "EMPTY",
+			"planets": [
+			]
+		},
+		{
+			"number": 48,
+			"wormhole": "NO_WORMHOLE",
+			"anomaly": "EMPTY",
+			"planets": [
+			]
+		},
+		{
+			"number": 41,
+			"wormhole": "NO_WORMHOLE",
+			"anomaly": "GRAVITY_RIFT",
+			"planets": [
+			]
+		},
+		{
+			"number": 42,
+			"wormhole": "NO_WORMHOLE",
+			"anomaly": "NEBULA",
+			"planets": [
+			]
+		},
+		{
+			"number": 39,
+			"wormhole": "ALPHA",
+			"anomaly": "EMPTY",
+			"planets": [
+			]
+		},
+		{
+			"number": 19,
+			"wormhole": "NO_WORMHOLE",
+			"anomaly": "NO_ANOMALY",
+			"planets": [
+				{
+					"name": "Wellon",
+					"resources": 1,
+					"influence": 2,
+					"trait": "INDUSTRIAL",
+					"tech": "YELLOW"
+				}
+			]
+		},
+		{
+			"number": 34,
+			"wormhole": "NO_WORMHOLE",
+			"anomaly": "NO_ANOMALY",
+			"planets": [
+				{
+					"name": "Centauri",
+					"resources": 1,
+					"influence": 3,
+					"trait": "CULTURAL",
+					"tech": "NO_TECH"
+				},
+				{
+					"name": "Gral",
+					"resources": 1,
+					"influence": 1,
+					"trait": "INDUSTRIAL",
+					"tech": "BLUE"
+				}
+			]
+		},
+		{
+			"number": 33,
+			"wormhole": "NO_WORMHOLE",
+			"anomaly": "NO_ANOMALY",
+			"planets": [
+				{
+					"name": "Corneeq",
+					"resources": 1,
+					"influence": 2,
+					"trait": "CULTURAL",
+					"tech": "NO_TECH"
+				},
+				{
+					"name": "Rescuilon",
+					"resources": 0,
+					"influence": 2,
+					"trait": "CULTURAL",
+					"tech": "NO_TECH"
+				}
+			]
+		},
+		{
+			"number": 25,
+			"wormhole": "BETA",
+			"anomaly": "NO_ANOMALY",
+			"planets": [
+				{
+					"name": "Quann",
+					"resources": 1,
+					"influence": 2,
+					"trait": "CULTURAL",
+					"tech": "NO_TECH"
+				}
+			]
+		},
+		{
+			"number": 29,
+			"wormhole": "NO_WORMHOLE",
+			"anomaly": "NO_ANOMALY",
+			"planets": [
+				{
+					"name": "Quecen'n",
+					"resources": 1,
+					"influence": 2,
+					"trait": "INDUSTRIAL",
+					"tech": "NO_TECH"
+				},
+				{
+					"name": "Rarron",
+					"resources": 0,
+					"influence": 3,
+					"trait": "CULTURAL",
+					"tech": "NO_TECH"
+				}
+			]
+		},
+		{
+			"number": 37,
+			"wormhole": "NO_WORMHOLE",
+			"anomaly": "NO_ANOMALY",
+			"planets": [
+				{
+					"name": "ARINAM",
+					"resources": 1,
+					"influence": 2,
+					"trait": "INDUSTRIAL",
+					"tech": "NO_TECH"
+				},
+				{
+					"name": "Meer",
+					"resources": 0,
+					"influence": 4,
+					"trait": "HAZARDOUS",
+					"tech": "RED"
+				}
+			]
+		},
+		{
+			"number": 36,
+			"wormhole": "NO_WORMHOLE",
+			"anomaly": "NO_ANOMALY",
+			"planets": [
+				{
+					"name": "Arnor",
+					"resources": 2,
+					"influence": 1,
+					"trait": "INDUSTRIAL",
+					"tech": "NO_TECH"
+				},
+				{
+					"name": "Lor",
+					"resources": 1,
+					"influence": 2,
+					"trait": "INDUSTRIAL",
+					"tech": "NO_TECH"
+				}
+			]
+		},
+		{
+			"number": 44,
+			"wormhole": "NO_WORMHOLE",
+			"anomaly": "ASTEROID_FIELD",
+			"planets": [
+			]
+		},
+		{
+			"number": 32,
+			"wormhole": "NO_WORMHOLE",
+			"anomaly": "NO_ANOMALY",
+			"planets": [
+				{
+					"name": "Dal Bootha",
+					"resources": 0,
+					"influence": 2,
+					"trait": "CULTURAL",
+					"tech": "NO_TECH"
+				},
+				{
+					"name": "Xxehan",
+					"resources": 1,
+					"influence": 1,
+					"trait": "CULTURAL",
+					"tech": "NO_TECH"
+				}
+			]
+		},
+		{
+			"number": 50,
+			"wormhole": "NO_WORMHOLE",
+			"anomaly": "EMPTY",
+			"planets": [
+			]
+		},
+		{
+			"number": 22,
+			"wormhole": "NO_WORMHOLE",
+			"anomaly": "NO_ANOMALY",
+			"planets": [
+				{
+					"name": "Tar'Mann",
+					"resources": 1,
+					"influence": 1,
+					"trait": "INDUSTRIAL",
+					"tech": "GREEN"
+				}
+			]
+		},
+		{
+			"number": 23,
+			"wormhole": "NO_WORMHOLE",
+			"anomaly": "NO_ANOMALY",
+			"planets": [
+				{
+					"name": "Saudor",
+					"resources": 2,
+					"influence": 2,
+					"trait": "INDUSTRIAL",
+					"tech": "NO_TECH"
+				}
+			]
+		},
+		{
+			"number": 35,
+			"wormhole": "NO_WORMHOLE",
+			"anomaly": "NO_ANOMALY",
+			"planets": [
+				{
+					"name": "Bereg",
+					"resources": 3,
+					"influence": 1,
+					"trait": "HAZARDOUS",
+					"tech": "NO_TECH"
+				},
+				{
+					"name": "Lirta IV",
+					"resources": 2,
+					"influence": 3,
+					"trait": "HAZARDOUS",
+					"tech": "NO_TECH"
+				}
+			]
+		},
+		{
+			"number":21,
+			"wormhole": "NO_WORMHOLE",
+			"anomaly": "NO_ANOMALY",
+			"planets": [
+				{
+					"name": "Thibah",
+					"resources": 1,
+					"influence": 1,
+					"trait": "INDUSTRIAL",
+					"tech": "BLUE"
+				}
+			]
+		},
+		{
+			"number": 43,
+			"wormhole": "NO_WORMHOLE",
+			"anomaly": "SUPERNOVA",
+			"planets": [
+			]
+		},
+		{
+			"number": 40,
+			"wormhole": "BETA",
+			"anomaly": "EMPTY",
+			"planets": [
+			]
+		},
+		{
+			"number": 18,
+			"wormhole": "NO_WORMHOLE",
+			"anomaly": "NO_ANOMALY",
+			"planets": [
+				{
+					"name": "Mecatol Rex",
+					"resources": 1,
+					"influence": 6,
+					"trait": "NO_TRAIT",
+					"tech": "NO_TECH"
+				}
+			]
+		},
+		{
+			"number": 46,
+			"wormhole": "NO_WORMHOLE",
+			"anomaly": "EMPTY",
+			"planets": [
+			]
+		},
+		{
+			"number": 20,
+			"wormhole": "NO_WORMHOLE",
+			"anomaly": "NO_ANOMALY",
+			"planets": [
+				{
+					"name": "VERFUT II",
+					"resources": 2,
+					"influence": 2,
+					"trait": "HAZARDOUS",
+					"tech": "NO_TECH"
+				}
+			]
+		},
+		{
+			"number": 24,
+			"wormhole": "NO_WORMHOLE",
+			"anomaly": "NO_ANOMALY",
+			"planets": [
+				{
+					"name": "Mehar Xull",
+					"resources": 1,
+					"influence": 3,
+					"trait": "HAZARDOUS",
+					"tech": "RED"
+				}
+			]
+		},
+		{
+			"number": 27,
+			"wormhole": "NO_WORMHOLE",
+			"anomaly": "NO_ANOMALY",
+			"planets": [
+				{
+					"name": "New Albion",
+					"resources": 1,
+					"influence": 1,
+					"trait": "INDUSTRIAL",
+					"tech": "GREEN"
+				},
+				{
+					"name": "Starpoint",
+					"resources": 3,
+					"influence": 1,
+					"trait": "HAZARDOUS",
+					"tech": "NO_TECH"
+				}
+			]
+		},
+		{
+			"number": 45,
+			"wormhole": "NO_WORMHOLE",
+			"anomaly": "ASTEROID_FIELD",
+			"planets": [
+			]
+		},
+		{
+			"number": 26,
+			"wormhole": "ALPHA",
+			"anomaly": "NO_ANOMALY",
+			"planets": [
+				{
+					"name": "Lodor",
+					"resources": 3,
+					"influence": 1,
+					"trait": "CULTURAL",
+					"tech": "NO_TECH"
+				}
+			]
+		},
+		{
+			"number": 49,
+			"wormhole": "NO_WORMHOLE",
+			"anomaly": "EMPTY",
+			"planets": [
+			]
+		},
+		{
+			"number": 28,
+			"wormhole": "NO_WORMHOLE",
+			"anomaly": "NO_ANOMALY",
+			"planets": [
+				{
+					"name": "Tequ'Ran",
+					"resources": 2,
+					"influence": 0,
+					"trait": "HAZARDOUS",
+					"tech": "NO_TECH"
+				},
+				{
+					"name": "Torkan",
+					"resources": 0,
+					"influence": 3,
+					"trait": "CULTURAL",
+					"tech": "NO_TECH"
+				}
+			]
+		},
+		{
+			"number": 31,
+			"wormhole": "NO_WORMHOLE",
+			"anomaly": "NO_ANOMALY",
+			"planets": [
+				{
+					"name": "Lazar",
+					"resources": 1,
+					"influence": 0,
+					"trait": "INDUSTRIAL",
+					"tech": "YELLOW"
+				},
+				{
+					"name": "Sakulag",
+					"resources": 2,
+					"influence": 1,
+					"trait": "HAZARDOUS",
+					"tech": "NO_TECH"
+				}
+			]
+		},
+		{
+			"number": 30,
+			"wormhole": "NO_WORMHOLE",
+			"anomaly": "NO_ANOMALY",
+			"planets": [
+				{
+					"name": "Mellon",
+					"resources": 0,
+					"influence": 2,
+					"trait": "CULTURAL",
+					"tech": "NO_TECH"
+				},
+				{
+					"name": "Zohbat",
+					"resources": 3,
+					"influence": 1,
+					"trait": "HAZARDOUS",
+					"tech": "NO_TECH"
+				}
+			]
 		}
 	]
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
