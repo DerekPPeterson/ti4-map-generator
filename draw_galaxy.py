@@ -9,13 +9,16 @@ TILE_IMAGE_Y = 774
 
 
 def get_tile_image(number):
-    number = 31 # TODO for debug
     try:
         return TILE_IMAGES[number]
     except KeyError:
         pass
 
-    image_filename = os.path.join(TILE_DIR, "tile%d.png" % number)
+    if (number < 0):
+        image_filename = os.path.join(TILE_DIR, "tilehome.png")
+    else:
+        image_filename = os.path.join(TILE_DIR, "tile%d.png" % number)
+
     try:
         TILE_IMAGES[number] = Image.open(image_filename)
     except:
@@ -31,23 +34,24 @@ def calc_coordinates(i, j, image_x, image_y, n_row_offset):
     return (out_x, out_y)
 
 
-def draw_galaxy(grid):
+def create_galaxy_image(grid):
     output = Image.new('RGBA', (int(TILE_IMAGE_X * (6 * 0.75 + 1)), TILE_IMAGE_Y * 7), (0, 0, 0, 1))
     for i in range(len(grid)):
         for j in range(len(grid[0])):
-            if (grid[i][j] == 0):
-                continue
             tile_image = get_tile_image(grid[i][j])
+            if (tile_image is None):
+                continue
             output.paste(tile_image,
                          calc_coordinates(i, j, TILE_IMAGE_X, TILE_IMAGE_Y, 3),
                          tile_image)
 
-    output.save("test.png", "PNG")
+    return output
 
 if __name__ == "__main__":
     json_file = open("galaxy.json")
     galaxy = json.load(json_file)
-    draw_galaxy(galaxy["grid"])
+    image = create_galaxy_image(galaxy["grid"])
+    image.save("test.png", "PNG")
 
 
 1
