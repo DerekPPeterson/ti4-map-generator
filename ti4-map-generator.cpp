@@ -64,6 +64,25 @@ map<string, Wormhole> wormhole_key = {
     {"DELTA", DELTA}
 };
 
+enum Anomaly
+{
+    NO_ANOMALY,
+    EMPTY,
+    GRAVITY_RIFT,
+    NEBULA,
+    SUPERNOVA,
+    ASTEROID_FIELD
+};
+
+map<string, Anomaly> anomaly_key = {
+    {"NO_ANOMALY", NO_ANOMALY},
+    {"EMPTY", EMPTY},
+    {"GRAVITY_RIFT", GRAVITY_RIFT},
+    {"NEBULA", NEBULA},
+    {"SUPERNOVA", SUPERNOVA},
+    {"ASTEROID_FIELD", ASTEROID_FIELD},
+};
+
 typedef struct Planet
 {
     string name;
@@ -78,16 +97,18 @@ class Tile
     int number;
     Wormhole wormhole;
     list<Planet> planets;
+    Anomaly anomaly;
 
     public:
-    Tile(int, list<Planet>, Wormhole);
+    Tile(int, list<Planet>, Wormhole, Anomaly);
 };
 
-Tile::Tile(int n, list<Planet> p, Wormhole w)
+Tile::Tile(int n, list<Planet> p, Wormhole w, Anomaly a)
 {
     number = n;
     planets = p;
     wormhole = w;
+    anomaly = a;
 }
 
 
@@ -125,6 +146,7 @@ Tile create_tile_from_json(json j)
 {
     int number = j["number"];
     Wormhole wormhole = wormhole_key.at(j["wormhole"]);
+    Anomaly anomaly = anomaly_key.at(j["anomaly"]);
 
     // Create planet list
     json planet_list = j["planets"];
@@ -133,7 +155,7 @@ Tile create_tile_from_json(json j)
         planets.push_back(create_planet_from_json(it.value()));
     }
 
-    Tile new_tile = Tile(number, planets, wormhole);
+    Tile new_tile = Tile(number, planets, wormhole, anomaly);
     return new_tile;
 }
 
