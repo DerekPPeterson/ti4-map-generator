@@ -7,6 +7,7 @@
 #include <cstdlib>
 #include <time.h>
 #include <exception>
+#include <cmath>
 
 #include "json.hpp"
 
@@ -115,18 +116,38 @@ class Tile
     Anomaly anomaly;
     Location location;
 
+    int resources;
+    int influence;
+
     public:
     Tile(int);
     Tile(int, list<Planet>, Wormhole, Anomaly);
     string get_description_string() const;
     int get_number();
     Wormhole get_wormhole();
+    Anomaly get_anomaly();
     void set_location(Location);
     Location get_location();
+    int get_resource_value();
+    int get_influence_value();
 };
+
+int Tile::get_resource_value()
+{
+    return resources;
+}
+
+int Tile::get_influence_value()
+{
+    return influence;
+}
 
 int Tile::get_number() {
     return number;
+}
+
+Anomaly Tile::get_anomaly() {
+    return anomaly;
 }
 
 Wormhole Tile::get_wormhole() {
@@ -171,8 +192,16 @@ Tile::Tile(int n, list<Planet> p, Wormhole w, Anomaly a)
     planets = p;
     wormhole = w;
     anomaly = a;
+
+    resources = 0;
+    influence = 0;
+    for (auto planet : planets) {
+        resources += planet.resources;
+        influence += planet.influence;
+    }
 }
 
+typedef map<Tile*,map<Tile*, float>> double_tile_map;
 
 class Galaxy
 {
@@ -192,6 +221,7 @@ class Galaxy
     list<Tile*> get_adjacent(Tile* t1);
     map<Tile*, float> distance_to_other_tiles(Tile* t1);
     void visit_all(Tile* t1, map<Tile*, float>& visited, float distance);
+    double_tile_map calculate_stakes(double_tile_map distances);
 
     public:
     Galaxy(string tile_filename);
@@ -333,12 +363,14 @@ void Galaxy::initialize_grid() {
     for (auto it : movable_systems) {
         random_tiles.push_back(it);
     }
+    movable_systems.clear();
     random_shuffle(random_tiles.begin(), random_tiles.end());
 
     for (int i = 0; i < 7;i++) {
         for (int j = 0; j < 7; j++) {
             if (not grid[i][j]) {
                 place_tile({i, j}, random_tiles.back());
+                movable_systems.push_back(random_tiles.back());
                 random_tiles.pop_back();
             }
         }
@@ -389,7 +421,6 @@ list<Tile*> Galaxy::get_adjacent(Tile *t1)
         Location new_location = start_location + it;
         Tile* potential_adjacent = get_tile_at(new_location);
         if (potential_adjacent) {
-            // TODO anomaly rules
             adjacent.push_back(potential_adjacent);
         }
     }
@@ -409,8 +440,18 @@ list<Tile*> Galaxy::get_adjacent(Tile *t1)
 void Galaxy::visit_all(Tile* t, map<Tile*, float>& visited, float distance)
 {
     //cout << "distance " << distance << " at " << t << " " << t->get_description_string() << endl;
+    
+    float move_cost;
+    // TODO: configure these?
+    switch (t->get_anomaly()) {
+        case NEBULA: move_cost = 2;
+                     break;
+        case ASTEROID_FIELD: move_cost = 1.5;
+        case SUPERNOVA: move_cost = 1000;
+        case GRAVITY_RIFT: move_cost = 1;
+        default : move_cost = 1;
+    }
 
-    float move_cost = 1;
     // If we didn't already visit, or our trip was shorter record distance and keep going
     if ((not visited.count(t)) or visited[t] > distance) {
         visited[t] = distance;
@@ -429,10 +470,68 @@ map<Tile*, float> Galaxy::distance_to_other_tiles(Tile* t1) {
     return visited;
 }
 
+
+double_tile_map Galaxy::calculate_stakes(double_tile_map distances)
+{
+    double_tile_map stakes;
+    for (auto t : movable_systems) {
+        map<Tile*, float> stakes_in_system;
+        for (auto hs : home_systems) {
+            // TODO this exponent configurable?
+            stakes_in_system[hs] = 1.0 / pow(distances[hs][t], 2);
+        }
+        float total_stake = 0;
+        for (auto it : stakes_in_system) {
+            total_stake += it.second;
+        }
+        for (auto it : stakes_in_system) {
+            stakes_in_system[it.first] /= total_stake;
+        }
+        stakes[t] = stakes_in_system;
+    }
+    return stakes;
+}
+
+typedef struct Scores
+{
+    map<Tile*, float> resource_share;
+    map<Tile*, float> influence_share;
+} Scores;
+
 float Galaxy::evaluate_grid() {
     float score = 0;
-    auto distance_from_mecatol = distance_to_other_tiles(home_systems.front());
-    return score;
+    
+    map<Tile*, map<Tile*, float>> distances_from_home_systems;
+
+    for (auto home_system : home_systems) {
+        distances_from_home_systems[home_system] = distance_to_other_tiles(home_system);
+    }
+    double_tile_map stakes = calculate_stakes(distances_from_home_systems);
+
+    for (auto it1 : stakes) {
+        cout << "Stakes in " << it1.first->get_description_string() << endl;
+        for (auto it2 : it1.second) {
+            cout << "\t" << it2.second << " " << it2.first->get_description_string() << endl;
+        }
+    }
+
+    Scores scores;
+
+    for (auto home_system : home_systems) {
+        float resource_share = 0;
+        float influence_share = 0;
+        for (auto tile : movable_systems) {
+            resource_share += tile->get_resource_value() * stakes[tile][home_system];
+            influence_share += tile->get_influence_value() * stakes[tile][home_system];
+        }
+        scores.resource_share[home_system] = resource_share;
+        scores.influence_share[home_system] = influence_share;
+    }
+
+    for (auto hs: home_systems) {
+        printf("%2.1f %2.1f %s\n", scores.resource_share[hs], scores.influence_share[hs],
+                hs->get_description_string().c_str());
+    }
 }
 
 int main() {
