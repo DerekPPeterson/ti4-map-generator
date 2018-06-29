@@ -626,6 +626,7 @@ float Galaxy::evaluate_grid() {
     float total_influence = 0;
     list<float> resource_shares;
     list<float> influence_shares;
+    list<float> combined_shares;;
     for (auto home_system : home_systems) {
         float resource_share = 0;
         float influence_share = 0;
@@ -638,6 +639,7 @@ float Galaxy::evaluate_grid() {
 
         resource_shares.push_back(resource_share);
         influence_shares.push_back(influence_share);
+        combined_shares.push_back(resource_share + influence_share);
 
         total_resources += resource_share;
         total_influence += influence_share;
