@@ -16,15 +16,30 @@ def random_string(N):
     return ''.join(random.choice(string.ascii_uppercase) for _ in range(N))
 
 
-def generate_galaxy(n_players):
+def generate_galaxy(args):
+
+    if "bw" in args and args["bw"].value == "true":
+        draw_galaxy.BW = True
+    n_players = 6
+    if "n_players" in args:
+        n_players = int(args["n_players"].value)
+
     id = random_string(6)
     galaxy_json_filename = "galaxy_%s.json" % id
     galaxy_png_filename = "galaxy_%s.png" % id
-    p = subprocess.Popen(
-        ["./ti4-map-generator",
-         "-t", "tiles.json",
-         "-o", os.path.join(GENERATED_DIR, galaxy_json_filename),
-         "-p", str(n_players)],
+    cmd = ["./ti4-map-generator",
+           "-t", "tiles.json",
+           "-o", os.path.join(GENERATED_DIR, galaxy_json_filename),
+           "-p", str(n_players)]
+    if "race_selection_method" in args:
+        if args["race_selection_method"].value == "random":
+            cmd += ["--random_homes"]
+        elif args["race_selection_method"].value == "chosen":
+            cmd += ["--choose_homes", "--races", args["races"].value]
+        else:
+            cmd += ["--dummy_homes"]
+
+    p = subprocess.Popen(cmd,
         stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     p.wait()
     out, err = p.communicate()
@@ -48,12 +63,7 @@ def return_image(image):
 def return_main_page(args):
     print("Content-Type: text/html;charset=utf-8\n")
 
-    if "bw" in args and args["bw"].value == "true":
-        draw_galaxy.BW = True
-    n_players = 6
-    if "n_players" in args:
-        n_players = int(args["n_players"].value)
-    galaxy_img_name = generate_galaxy(n_players)
+    galaxy_img_name = generate_galaxy(args)
 
     print('<img src="./cgi-bin/ti4-map-generator-cgi.py?image=%s"/>' % galaxy_img_name)
 

@@ -9,6 +9,7 @@
 #include <exception>
 #include <cmath>
 #include <iterator>
+#include <sstream>
 
 #include "json.hpp"
 #include "cxxopts.hpp"
@@ -230,6 +231,8 @@ Tile::Tile(int n, list<Planet> p, string race1)
 
 typedef map<Tile*,map<Tile*, float>> double_tile_map;
 
+enum HomeSystemSetups {DUMMY, RANDOM_RACES, CHOSEN_RACES};
+
 class Galaxy
 {
     list<Tile> tiles;
@@ -243,6 +246,7 @@ class Galaxy
     void import_tiles(string tile_filename);
     void random_home_tiles(int n);
     void dummy_home_tiles(int n);
+    void chosen_home_tiles(int n, string chosen);
     void initialize_grid(int n);
     void place_tile(Location location, Tile*);
     void swap_tiles(Tile *, Tile *);
@@ -254,19 +258,28 @@ class Galaxy
     vector<pair<Tile*, Tile*>> make_swap_list();
 
     public:
-    Galaxy(string tile_filename, int n_players);
+    Galaxy(string tile_filename, int n_players, HomeSystemSetups, string home_tile_ids);
     void print_grid();
     float evaluate_grid();
     void optimize_grid();
     void write_json(string filename);
 };
 
-Galaxy::Galaxy(string tile_filename, int n_players)
+Galaxy::Galaxy(string tile_filename, int n_players, HomeSystemSetups hss, 
+        string home_tile_numbers)
     : boundary_tile(0)
 {
     import_tiles(tile_filename);
-    //random_home_tiles(n_players);
-    dummy_home_tiles(n_players);
+    switch (hss) {
+        case DUMMY: 
+            dummy_home_tiles(n_players);
+            break;
+        case RANDOM_RACES:
+            random_home_tiles(n_players);
+            break;
+        case CHOSEN_RACES:
+            chosen_home_tiles(n_players, home_tile_numbers);
+    }
     initialize_grid(n_players);
 
     //for (auto i : tiles) {
@@ -375,6 +388,26 @@ void Galaxy::random_home_tiles(int n) {
     for (int i = 0; i < n; i++) {
         home_systems.push_back(*it);
         it++;
+    }
+}
+
+void Galaxy::chosen_home_tiles(int n, string chosen) {
+    list<int> numbers;
+    stringstream chosen_ss(chosen);
+    for (int i = 0; i < n; i++) {
+        int number;
+        chosen_ss >> number;
+        cout << "using number " << number << endl;
+        numbers.push_back(number);
+    }
+
+    list<Tile*> available_home_systems = home_systems;
+    home_systems.clear();
+
+    for (auto s : available_home_systems) {
+        if (find(numbers.begin(), numbers.end(), s->get_number()) != numbers.end()) {
+            home_systems.push_back(s);
+        }
     }
 }
 
@@ -744,6 +777,10 @@ int main(int argc, char *argv[]) {
             ("t,tiles", "json file defining tile properites", cxxopts::value<std::string>())
             ("o,output", "galaxy json output filename", cxxopts::value<std::string>())
             ("p,players", "number of players", cxxopts::value<int>()->default_value("6"))
+            ("dummy_homes", "use blank home systems (default)")
+            ("random_homes", "use random race home systems")
+            ("choose_homes", "use with --races option")
+            ("r,races", "list of home system tile numbers like so \"1 2 5...\"", cxxopts::value<string>()->default_value("6"))
             ("h,help", "Print help")
             ;
     auto result = options.parse(argc, argv);
@@ -761,7 +798,22 @@ int main(int argc, char *argv[]) {
 
     srand(time(NULL));
 
-    Galaxy galaxy(result["tiles"].as<string>(), result["players"].as<int>());
+    HomeSystemSetups hss = DUMMY;
+    string races;
+
+    if (result.count("random_homes")) {
+        hss = RANDOM_RACES;
+    }
+    if (result.count("choose_homes")) {
+        hss = CHOSEN_RACES;
+        if (not result.count("races")) {
+            cerr << "Must also provide list of races with -r option" << endl;
+            exit(-1);
+        }
+        races = result["races"].as<string>();
+    }
+
+    Galaxy galaxy(result["tiles"].as<string>(), result["players"].as<int>(), hss, races);
     float score = galaxy.evaluate_grid();
     cout << "Score: " << score << endl;
     galaxy.optimize_grid();

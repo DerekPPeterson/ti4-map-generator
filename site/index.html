@@ -17,9 +17,11 @@
 			<option value=4>4</option>
 			<option value=3>3</option>
 		</select>
+		<br>
 
-		<input type="radio" id="dummy_races" name="dummy_races" value="true" checked> Blank Home Systems
-		<input type="radio" id="dummy_races" name="dummy_races" value="false"> Select Races<br>
+		<input type="radio" id="race_selection_method" name="race_selection_method" value="dummy" checked> Blank Home Systems
+		<input type="radio" id="race_selection_method" name="race_selection_method" value="random"> Random Races
+		<input type="radio" id="race_selection_method" name="race_selection_method" value="chosen"> Select Races<br>
 		<div id="race_select_div"></div>
 
 		Display in:
@@ -35,7 +37,6 @@
 		$("#document").ready(function() {
 
 			function create_race_selection_boxes() {
-
 				// Create race select boxes
 				var races = [
 					{"number": 1, "race": "The Federation of Sol"},
@@ -57,7 +58,7 @@
 					{"number": 17, "race": "The Ghosts of Creuss"},
 					];
 				$('#race_select_div').empty();
-				if ($("#dummy_races:checked").val() == "true") {
+				if ($("#race_selection_method:checked").val() != "chosen") {
 					return;
 				}
 				var i;
@@ -71,16 +72,50 @@
 					$("<br>").appendTo($('#race_select_div'));
 				}
 			}
+
+			function get_selected_races() {
+				var races = "";
+				for (i = 0; i < $("#n_players").val(); i++) {
+					races += $("#race" + i).val() + " ";
+				}
+				return races;
+			}
+
+			function hasDuplicates(array) {
+				    return (new Set(array)).size !== array.length;
+			}
+
+			function race_duplicates() {
+				if ($("#race_selection_method:checked").val() != "chosen") {
+					return false;
+				}
+
+				var races = [];
+				for (i = 0; i < $("#n_players").val(); i++) {
+					races.push($("#race" + i).val());
+				}
+				return hasDuplicates(races);
+			}
+
+
 			create_race_selection_boxes();
 			$('#n_players').change(create_race_selection_boxes);
-			$('input[name=dummy_races]').click(create_race_selection_boxes);
+			$('input[name=race_selection_method]').click(create_race_selection_boxes);
 
 			$("#generate_form").submit(function(event) {
 				event.preventDefault();
+			
+				if (race_duplicates()) {
+					alert("Cannot have duplicate races");
+					return;
+				}
+
 				var get = $.get("./cgi-bin/ti4-map-generator-cgi.py", 
 					{
 						bw: $("#bw:checked").val(),
-						n_players: $("#n_players").val()
+						race_selection_method: $("#race_selection_method:checked").val(),
+						n_players: $("#n_players").val(),
+						races: get_selected_races()
 					});
 				get.done(function(data) {
 					$("#galaxy_image_div").html(data);
