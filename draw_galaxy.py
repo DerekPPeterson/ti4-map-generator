@@ -7,6 +7,7 @@ TILE_DIR = "./res"
 TILE_IMAGE_X = 900
 TILE_IMAGE_Y = 774
 FONT_PATH = "./res/Slider Regular.ttf"
+BW = False
 
 
 def get_tile_image(number):
@@ -18,7 +19,10 @@ def get_tile_image(number):
     except KeyError:
         pass
 
-    if (number < 0):
+    if (BW):
+        number = 0
+        image_filename = os.path.join(TILE_DIR, "tilebw.png")
+    elif (number < 0):
         image_filename = os.path.join(TILE_DIR, "tilehome.png")
     else:
         image_filename = os.path.join(TILE_DIR, "tile%d.png" % number)
@@ -30,9 +34,6 @@ def get_tile_image(number):
         return None
     return TILE_IMAGES[number]
 
-def draw_number_at_coordinates(number, fnt, image, coords):
-    d.text(coords, str(number), font=fnt)
-
 
 def calc_coordinates(i, j, n_row_offset):
     start_offset = n_row_offset * (TILE_IMAGE_Y) / 2
@@ -40,19 +41,25 @@ def calc_coordinates(i, j, n_row_offset):
     out_y = start_offset + j * TILE_IMAGE_Y - i * (TILE_IMAGE_Y/2)
     return (out_x, out_y)
 
+
 def calc_text_coords(i, j, n_row_offset):
     coords = calc_coordinates(i, j, n_row_offset)
-    return (coords[0] + TILE_IMAGE_X / 8,
-            coords[1] + TILE_IMAGE_Y / 3)
+    if BW:
+        return (coords[0] + TILE_IMAGE_X / 3.5,
+                coords[1] + TILE_IMAGE_Y / 3)
+    else:
+        return (coords[0] + TILE_IMAGE_X / 8,
+                coords[1] + TILE_IMAGE_Y / 3)
 
 
-def create_galaxy_image(grid):
+
+def create_galaxy_image_from_grid(grid):
     output = Image.new('RGBA',
                        (int(TILE_IMAGE_X * (6 * 0.75 + 1)), TILE_IMAGE_Y * 7),
-                       (0, 0, 0, 0 ))
+                       (0, 0, 0, 0))
     txt = Image.new('RGBA',
-                     (int(TILE_IMAGE_X * (6 * 0.75 + 1)), TILE_IMAGE_Y * 7),
-                     (255, 255, 255, 0))
+                    (int(TILE_IMAGE_X * (6 * 0.75 + 1)), TILE_IMAGE_Y * 7),
+                    (255, 255, 255, 0))
     d = ImageDraw.Draw(txt)
     font = ImageFont.truetype(FONT_PATH, size=TILE_IMAGE_Y/3)
     for i in range(len(grid)):
@@ -63,16 +70,26 @@ def create_galaxy_image(grid):
             coords = calc_coordinates(i, j, 3)
             text_coords = calc_text_coords(i, j, 3)
             output.paste(tile_image, coords, tile_image)
-            d.text(text_coords, str(grid[i][j]), font=font, fill=(255,255,255,255))
+            if BW:
+                text_color = (0, 0, 0, 255)
+            else:
+                text_color = (255, 255, 255, 255)
+
+            if grid[i][j] > 0:
+                d.text(text_coords, str(grid[i][j]), font=font, fill=text_color)
 
     output = Image.alpha_composite(output, txt)
     return output
 
-if __name__ == "__main__":
-    json_file = open("galaxy.json")
-    galaxy = json.load(json_file)
-    image = create_galaxy_image(galaxy["grid"])
-    image.resize((900, 900), Image.BICUBIC).save("test.png", "PNG")
 
+def create_galaxy_image(galaxy_json_filename, output_filename, box=(900, 900)):
+    json_file = open(galaxy_json_filename)
+    galaxy = json.load(json_file)
+    image = create_galaxy_image_from_grid(galaxy["grid"])
+    image.resize(box, Image.BICUBIC).save(output_filename, "PNG")
+
+
+if __name__ == "__main__":
+    create_galaxy_image("galaxy.json", "galaxy.png")
 
 1
