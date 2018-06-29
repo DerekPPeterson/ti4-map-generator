@@ -45,7 +45,7 @@ def calc_coordinates(i, j, n_row_offset):
 def calc_text_coords(i, j, n_row_offset):
     coords = calc_coordinates(i, j, n_row_offset)
     if BW:
-        return (coords[0] + TILE_IMAGE_X / 3.5,
+        return (coords[0] + int(TILE_IMAGE_X / 3.5),
                 coords[1] + TILE_IMAGE_Y / 3)
     else:
         return (coords[0] + TILE_IMAGE_X / 8,
@@ -61,7 +61,7 @@ def create_galaxy_image_from_grid(grid):
                     (int(TILE_IMAGE_X * (6 * 0.75 + 1)), TILE_IMAGE_Y * 7),
                     (255, 255, 255, 0))
     d = ImageDraw.Draw(txt)
-    font = ImageFont.truetype(FONT_PATH, size=TILE_IMAGE_Y/3)
+    font = ImageFont.truetype(FONT_PATH, size=int(TILE_IMAGE_Y/3))
     for i in range(len(grid)):
         for j in range(len(grid[0])):
             tile_image = get_tile_image(grid[i][j])
