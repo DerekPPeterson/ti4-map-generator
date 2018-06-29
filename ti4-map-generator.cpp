@@ -243,7 +243,7 @@ class Galaxy
     void import_tiles(string tile_filename);
     void random_home_tiles(int n);
     void dummy_home_tiles(int n);
-    void initialize_grid();
+    void initialize_grid(int n);
     void place_tile(Location location, Tile*);
     void swap_tiles(Tile *, Tile *);
     Tile* get_tile_at(Location location);
@@ -254,20 +254,20 @@ class Galaxy
     vector<pair<Tile*, Tile*>> make_swap_list();
 
     public:
-    Galaxy(string tile_filename);
+    Galaxy(string tile_filename, int n_players);
     void print_grid();
     float evaluate_grid();
     void optimize_grid();
     void write_json(string filename);
 };
 
-Galaxy::Galaxy(string tile_filename)
+Galaxy::Galaxy(string tile_filename, int n_players)
     : boundary_tile(0)
 {
     import_tiles(tile_filename);
-    //random_home_tiles(6);
-    dummy_home_tiles(6);
-    initialize_grid();
+    //random_home_tiles(n_players);
+    dummy_home_tiles(n_players);
+    initialize_grid(n_players);
 
     //for (auto i : tiles) {
     //    cout << i << endl;
@@ -395,7 +395,7 @@ list<t> get_shuffled_list(list<t> l) {
     return l;
 }
 
-void Galaxy::initialize_grid() {
+void Galaxy::initialize_grid(int n_players) {
     for (int i = 0; i < 7;i++) {
         for (int j = 0; j < 7; j++) {
             place_tile({i, j}, NULL);
@@ -411,15 +411,27 @@ void Galaxy::initialize_grid() {
             place_tile({i, j}, &boundary_tile);
         }
     }
+    if (n_players == 3) {
+        list<Location> extra_removed = {{0,2},{0,3},{1,4},{2,0},{3,0},{4,1},{5,6},{6,6},{6,5}};
+        for (auto l : extra_removed) {
+            place_tile(l, &boundary_tile);
+        }
+    }
 
     // Place Mecatol at centre of galaxy
     place_tile({3, 3}, mecatol);
 
     // Place home systems // TODO for other counts than 6p
-    int corners[6][2] = {{0,0},{0,3},{3,6},{6,6},{6,3},{3,0}};
+    vector<Location> start_positions;
+    switch (n_players) {
+        case 3: {vector<Location> tmp = {{0,0},{3,6},{6,3}}; start_positions = tmp; break;}
+        case 4: {vector<Location> tmp = {{0,2},{4,6},{6,4},{2,0}}; start_positions = tmp; break;}
+        case 5: {vector<Location> tmp = {{0,2},{6,3},{3,6},{6,6},{2,0}}; start_positions = tmp; break;}
+        case 6: {vector<Location> tmp = {{0,0},{0,3},{3,6},{6,6},{6,3},{3,0}}; start_positions = tmp; break;}
+    }
     int i = 0;
     for (auto it : home_systems) {
-        place_tile({corners[i][0], corners[i][1]}, it);
+        place_tile(start_positions[i], it);
         i++;
     }
 
@@ -730,6 +742,7 @@ int main(int argc, char *argv[]) {
     options.add_options()
             ("t,tiles", "json file defining tile properites", cxxopts::value<std::string>())
             ("o,output", "galaxy json output filename", cxxopts::value<std::string>())
+            ("p,players", "number of players", cxxopts::value<int>()->default_value("6"))
             ("h,help", "Print help")
             ;
     auto result = options.parse(argc, argv);
@@ -747,7 +760,7 @@ int main(int argc, char *argv[]) {
 
     srand(time(NULL));
 
-    Galaxy galaxy(result["tiles"].as<string>());
+    Galaxy galaxy(result["tiles"].as<string>(), result["players"].as<int>());
     float score = galaxy.evaluate_grid();
     cout << "Score: " << score << endl;
     galaxy.optimize_grid();

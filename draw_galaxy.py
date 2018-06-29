@@ -77,6 +77,7 @@ def create_galaxy_image_from_grid(grid):
 
             if grid[i][j] > 0:
                 d.text(text_coords, str(grid[i][j]), font=font, fill=text_color)
+            #d.text(text_coords, "{},{}".format(i, j), font=font, fill=text_color)
 
     output = Image.alpha_composite(output, txt)
     return output
