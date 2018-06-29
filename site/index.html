@@ -1,0 +1,44 @@
+<head>
+	<link rel="stylesheet" type="text/css" href="./res/style.css">
+	<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+	<script src="http://malsup.github.com/jquery.form.js"></script> 
+</head>
+
+<body>
+	<h1>Twilight Imperium IV Balanced Map Generator</h1>
+	<form id="generate_form" action="./cgi-bin/ti4-map-generator-cgi.py">
+		Number of Players:
+		<select id="n_players" name="n_players">
+			<option value=6>6</option>
+			<option value=5>5</option>
+			<option value=4>4</option>
+			<option value=3>3</option>
+		</select>
+		<br>
+
+		Display in:
+		<input type="radio" id="bw" name="bw" value="false" checked> Full Colour
+		<input type="radio" id="bw" name="bw" value="true"> Tile Numbers Only<br>
+
+		<input type="submit" value="Submit">
+	</form>
+			
+	<div id="galaxy_image_div"></div>
+
+	<script text/javascript>
+		$("#document").ready(function() {
+			$("#generate_form").submit(function(event) {
+				event.preventDefault();
+				var get = $.get("./cgi-bin/ti4-map-generator-cgi.py", 
+					{
+						bw: $("#bw:checked").val(),
+						n_players: $("#n_players").val()
+					});
+				get.done(function(data) {
+					$("#galaxy_image_div").html(data);
+				});
+			});
+		});
+
+	</script>
+</body>

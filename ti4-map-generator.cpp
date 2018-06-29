@@ -730,6 +730,7 @@ void Galaxy::write_json(string filename)
         j["grid"].push_back(row);
     }
     
+    cerr << "Writing result to " << filename << endl;
     ofstream galaxy_output_file;
     galaxy_output_file.open(filename);
     galaxy_output_file << j;
@@ -768,6 +769,7 @@ int main(int argc, char *argv[]) {
     cout << "Score: " << score << endl;
     galaxy.print_grid();
     galaxy.write_json(result["output"].as<string>());
+
 
     return 0;
 }
