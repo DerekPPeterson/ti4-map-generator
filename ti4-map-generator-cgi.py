@@ -43,20 +43,47 @@ def return_image(image):
         sys.stdout.flush()
         sys.stdout.write(f.read())
 
+def print_form():
+    print ("""
+<form action="./ti4-map-generator-cgi.py">
+    Number of Players:
+    <select name="n_players">
+        <option value=6>6</option>
+        <option value=5>5</option>
+        <option value=4>4</option>
+        <option value=3>3</option>
+    </select>
+    <br>
+
+    Display in:
+    <input type="radio" name="bw" value="false" checked> Full Colour
+    <input type="radio" name="bw" value="true"> Tile Numbers Only<br>
+
+    <input type="submit" value="Submit">
+</form>
+    """)
+
 def return_main_page(args):
     print("Content-Type: text/html;charset=utf-8\n")
     print("""
+    <head>
+        <link rel="stylesheet" type="text/css" href="../../style.css">
+    </head>
+          <body>
     <h1>Twilight Imperium IV Balanced Map Generator</h1>
         """)
 
-    if "bw" in args:
+    if "bw" in args and args["bw"].value == "true":
         draw_galaxy.BW = True
     n_players = 6
     if "n_players" in args:
         n_players = args["n_players"].value
     galaxy_img_name = generate_galaxy(n_players)
 
+    print_form()
+
     print('<img src="./test.py?image=%s"/>' % galaxy_img_name)
+    print('</body>')
 
 cgitb.enable()
 args = cgi.FieldStorage()
