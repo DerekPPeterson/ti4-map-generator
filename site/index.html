@@ -1,3 +1,6 @@
+<!DOCTYPE html>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8"/> 
+<html>
 <head>
 	<link rel="stylesheet" type="text/css" href="./res/style.css">
 	<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
@@ -5,7 +8,7 @@
 </head>
 
 <body>
-	<h1>Twilight Imperium IV Balanced Map Generator</h1>
+	<h1>TWILIGHT IMPERIUM IV BALANCED MAP GENERATOR</h1>
 	<form id="generate_form" action="./cgi-bin/ti4-map-generator-cgi.py">
 		Number of Players:
 		<select id="n_players" name="n_players">
@@ -14,19 +17,64 @@
 			<option value=4>4</option>
 			<option value=3>3</option>
 		</select>
-		<br>
+
+		<input type="radio" id="dummy_races" name="dummy_races" value="true" checked> Blank Home Systems
+		<input type="radio" id="dummy_races" name="dummy_races" value="false"> Select Races<br>
+		<div id="race_select_div"></div>
 
 		Display in:
-		<input type="radio" id="bw" name="bw" value="false" checked> Full Colour
-		<input type="radio" id="bw" name="bw" value="true"> Tile Numbers Only<br>
+		<input type="radio" id="bw" name="bw" value="false" checked>Colour
+		<input type="radio" id="bw" name="bw" value="true"> Black and White<br>
 
-		<input type="submit" value="Submit">
+		<input type="submit" value="Generate">
 	</form>
 			
 	<div id="galaxy_image_div"></div>
 
 	<script text/javascript>
 		$("#document").ready(function() {
+
+			function create_race_selection_boxes() {
+
+				// Create race select boxes
+				var races = [
+					{"number": 1, "race": "The Federation of Sol"},
+					{"number": 2, "race": "The Mentak Coalition"},
+					{"number": 3, "race": "The Brotherhood of Yin"},
+					{"number": 4, "race": "The Embers of Muaat"},
+					{"number": 5, "race": "The Aborec"},
+					{"number": 6, "race": "The L1Z1X Mindnet"},
+					{"number": 7, "race": "The Winnu"},
+					{"number": 8, "race": "The Nekro Virus"},
+					{"number": 9, "race": "The Naalu Collective"},
+					{"number": 10, "race": "The Baroney of Letnev"},
+					{"number": 11, "race": "The Clan of Saar"},
+					{"number": 12, "race": "The Universities of Jol-Nar"},
+					{"number": 13, "race": "Sardakk'Norr"},
+					{"number": 14, "race": "The Xxcha Kingdom"},
+					{"number": 15, "race": "The Yssaril Tribes"},
+					{"number": 16, "race": "The Emerates of Hacan"},
+					{"number": 17, "race": "The Ghosts of Creuss"},
+					];
+				$('#race_select_div').empty();
+				if ($("#dummy_races:checked").val() == "true") {
+					return;
+				}
+				var i;
+				for (i = 0; i < $("#n_players").val(); i++) {
+					var race_select = $("<select>").appendTo($('#race_select_div'));
+					$(races).each(function() {
+						race_select.append($('<option>').attr('value', this.number).text(this.race));
+					});
+					race_select.attr('id', "race" + i);
+					race_select.val(i+1);
+					$("<br>").appendTo($('#race_select_div'));
+				}
+			}
+			create_race_selection_boxes();
+			$('#n_players').change(create_race_selection_boxes);
+			$('input[name=dummy_races]').click(create_race_selection_boxes);
+
 			$("#generate_form").submit(function(event) {
 				event.preventDefault();
 				var get = $.get("./cgi-bin/ti4-map-generator-cgi.py", 
@@ -42,3 +90,4 @@
 
 	</script>
 </body>
+</html>
