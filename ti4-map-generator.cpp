@@ -116,6 +116,7 @@ class Tile
     list<Planet> planets;
     Anomaly anomaly;
     Location location;
+    string race;
 
     int resources;
     int influence;
@@ -123,6 +124,7 @@ class Tile
     public:
     Tile(int);
     Tile(int, list<Planet>, Wormhole, Anomaly);
+    Tile(int, list<Planet>, string race);
     string get_description_string() const;
     int get_number();
     Wormhole get_wormhole();
@@ -131,6 +133,7 @@ class Tile
     Location get_location();
     int get_resource_value();
     int get_influence_value();
+    bool is_home_system();
 };
 
 int Tile::get_resource_value()
@@ -176,6 +179,11 @@ string Tile::get_description_string() const {
     return desc.str();
 }
 
+bool Tile::is_home_system()
+{
+    return race.length();
+}
+
 std::ostream& operator<< (std::ostream &out, Tile const& tile) {
     out << tile.get_description_string();
     return out;
@@ -184,6 +192,7 @@ std::ostream& operator<< (std::ostream &out, Tile const& tile) {
 Tile::Tile(int n)
 {
     number = n;
+    race = "";
 }
 
 
@@ -193,6 +202,23 @@ Tile::Tile(int n, list<Planet> p, Wormhole w, Anomaly a)
     planets = p;
     wormhole = w;
     anomaly = a;
+    race = "";
+
+    resources = 0;
+    influence = 0;
+    for (auto planet : planets) {
+        resources += planet.resources;
+        influence += planet.influence;
+    }
+}
+
+Tile::Tile(int n, list<Planet> p, string race1)
+{
+    number = n;
+    planets = p;
+    wormhole = NO_WORMHOLE;
+    anomaly = NO_ANOMALY;
+    race = race1;
 
     resources = 0;
     influence = 0;
@@ -215,7 +241,8 @@ class Galaxy
     Tile boundary_tile; // used for inaccesable locations in the grid
 
     void import_tiles(string tile_filename);
-    void create_home_tiles(int n);
+    void random_home_tiles(int n);
+    void dummy_home_tiles(int n);
     void initialize_grid();
     void place_tile(Location location, Tile*);
     void swap_tiles(Tile *, Tile *);
@@ -238,7 +265,7 @@ Galaxy::Galaxy(string tile_filename)
     : boundary_tile(0)
 {
     import_tiles(tile_filename);
-    create_home_tiles(6);
+    random_home_tiles(6);
     initialize_grid();
 
     //for (auto i : tiles) {
@@ -310,6 +337,13 @@ void Galaxy::import_tiles(string tile_filename)
             wormhole_systems[added_tile->get_wormhole()].push_back(added_tile);
         }
     }
+    // Also home tiles
+    tile_list = tile_json["home_tiles"];
+    for (json::iterator it = tile_list.begin(); it != tile_list.end(); it++) {
+        tiles.push_back(create_tile_from_json(it.value()));
+        Tile *added_tile = &tiles.back();
+        home_systems.push_back(added_tile);
+    }
     
     // Save a pointer to mecatol rex
     tiles.push_back(create_tile_from_json(tile_json["mecatol"]));
@@ -318,10 +352,34 @@ void Galaxy::import_tiles(string tile_filename)
     cerr << "Loaded " << tiles.size() << " tiles" << endl;
 }
 
-void Galaxy::create_home_tiles(int n) {
+list<Tile*> get_shuffled_list(list<Tile*> l)
+{
+    vector<Tile *> to_shuffle;
+    list<Tile *> ret;
+    for (auto it : l) {
+        to_shuffle.push_back(it);
+    }
+    random_shuffle(to_shuffle.begin(), to_shuffle.end());
+    for (auto it : to_shuffle) {
+        ret.push_back(it);
+    }
+    return ret;
+}
+
+void Galaxy::random_home_tiles(int n) {
+    auto shuffled = get_shuffled_list(home_systems);
+    auto it = shuffled.begin();
+    home_systems.clear();
+    list<Tile*> new_home_tiles;
     for (int i = 0; i < n; i++) {
-        list<Planet> no_planets;
-        Tile new_tile = Tile(-i - 1, no_planets, NO_WORMHOLE, NO_ANOMALY);
+        home_systems.push_back(*it);
+        it++;
+    }
+}
+
+void Galaxy::dummy_home_tiles(int n) {
+    for (int i = 0; i < n; i++) {
+        Tile new_tile = Tile(-i - 1);
         tiles.push_back(new_tile);
         home_systems.push_back(&tiles.back());
     }
@@ -444,7 +502,10 @@ list<Tile*> Galaxy::get_adjacent(Tile *t1)
 
 void Galaxy::visit_all(Tile* t, map<Tile*, float>& visited, float distance)
 {
-    //cout << "distance " << distance << " at " << t << " " << t->get_description_string() << endl;
+    if (distance > 10) {
+        return;
+    }
+   //cout << "distance " << distance << " at " << t << " " << t->get_description_string() << endl;
     
     float move_cost;
     // TODO: configure these?
@@ -452,17 +513,22 @@ void Galaxy::visit_all(Tile* t, map<Tile*, float>& visited, float distance)
         case NEBULA: move_cost = 2;
                      break;
         case ASTEROID_FIELD: move_cost = 1.5;
-        case SUPERNOVA: move_cost = 1000;
+        case SUPERNOVA: return; // can't go through supernovas
         case GRAVITY_RIFT: move_cost = 1;
         default : move_cost = 1;
+    }
+
+    // don't travel through other home systems either
+    if (t->is_home_system() and distance > 0) {
+        return;
     }
 
     // If we didn't already visit, or our trip was shorter record distance and keep going
     if ((not visited.count(t)) or visited[t] > distance) {
         visited[t] = distance;
-        for(auto adjacent : get_adjacent(t)) {
-            //cout << " Will visit " << adjacent->get_description_string() << endl;
-        }
+        //for(auto adjacent : get_adjacent(t)) {
+        //    cout << " Will visit " << adjacent->get_description_string() << endl;
+        //}
         for(auto adjacent : get_adjacent(t)) {
             visit_all(adjacent, visited, distance + move_cost);
         }
@@ -482,12 +548,19 @@ double_tile_map Galaxy::calculate_stakes(double_tile_map distances)
     for (auto t : movable_systems) {
         map<Tile*, float> stakes_in_system;
         for (auto hs : home_systems) {
-            // TODO this exponent configurable?
-            stakes_in_system[hs] = 1.0 / pow(distances[hs][t], 2);
+            try {
+                stakes_in_system[hs] = 1.0 / pow(distances[hs].at(t), 2);
+            } catch (out_of_range) {
+                // Systems like supernovas will not have any stake in them
+                stakes_in_system[hs] = 0;
+            }
         }
         float total_stake = 0;
         for (auto it : stakes_in_system) {
             total_stake += it.second;
+        }
+        if (total_stake == 0) {
+            continue;
         }
         for (auto it : stakes_in_system) {
             stakes_in_system[it.first] /= total_stake;
@@ -616,7 +689,7 @@ void Galaxy::optimize_grid()
                 current_score = new_score;
                 printf("Swapping tiles %d & %d, new_score: %0.3f\n", 
                         swap.first->get_number(), swap.second->get_number(), current_score);
-                print_grid();
+                //print_grid();
                 break;
             } else {
                 swap_tiles(swap.first, swap.second);
@@ -653,12 +726,11 @@ int main() {
 
     Galaxy galaxy("tiles.json");
     float score = galaxy.evaluate_grid();
-    galaxy.print_grid();
     cout << "Score: " << score << endl;
     galaxy.optimize_grid();
     score = galaxy.evaluate_grid();
-    galaxy.print_grid();
     cout << "Score: " << score << endl;
+    galaxy.print_grid();
     galaxy.write_json("galaxy.json");
 
     return 0;
