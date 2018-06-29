@@ -3,10 +3,10 @@ import json
 import os
 
 TILE_IMAGES = {}
-TILE_DIR = "./res"
+TILE_DIR = "../res"
 TILE_IMAGE_X = 900
 TILE_IMAGE_Y = 774
-FONT_PATH = "./res/Slider Regular.ttf"
+FONT_PATH = "../res/Slider Regular.ttf"
 BW = False
 
 

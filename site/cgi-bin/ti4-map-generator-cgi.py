@@ -9,7 +9,7 @@ import sys
 import subprocess
 import draw_galaxy
 
-GENERATED_DIR = "/var/web_tmp"
+GENERATED_DIR = "../generated"
 
 def random_string(N):
     return ''.join(random.choice(string.ascii_uppercase) for _ in range(N))
