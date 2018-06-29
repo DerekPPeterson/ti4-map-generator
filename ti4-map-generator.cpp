@@ -11,6 +11,7 @@
 #include <iterator>
 
 #include "json.hpp"
+#include "cxxopts.hpp"
 
 #define BACKWARD_HAS_BFD 1
 #include "backward-cpp/backward.hpp"
@@ -190,17 +191,10 @@ std::ostream& operator<< (std::ostream &out, Tile const& tile) {
     return out;
 }
 
-Tile::Tile(int n)
-{
-    number = n;
-    race = "";
-}
+Tile::Tile(int n) : number(n), wormhole(NO_WORMHOLE), anomaly(NO_ANOMALY), race("") {};
 
-Tile::Tile(int n, string race1)
-{
-    number = n;
-    race = race1;
-}
+Tile::Tile(int n, string race) 
+    : number(n), wormhole(NO_WORMHOLE), anomaly(NO_ANOMALY), race(race) {};
 
 Tile::Tile(int n, list<Planet> p, Wormhole w, Anomaly a)
 {
@@ -730,18 +724,37 @@ void Galaxy::write_json(string filename)
     galaxy_output_file.close();
 }
 
-int main() {
+int main(int argc, char *argv[]) {
+
+    cxxopts::Options options("ti4-map-generator", "Generate balanced TI4 maps");
+    options.add_options()
+            ("t,tiles", "json file defining tile properites", cxxopts::value<std::string>())
+            ("o,output", "galaxy json output filename", cxxopts::value<std::string>())
+            ("h,help", "Print help")
+            ;
+    auto result = options.parse(argc, argv);
+
+	if (result.count("help"))
+    {
+      std::cout << options.help({""}) << std::endl;
+      exit(0);
+    }
+
+    if (not result.count("tiles") or not result.count("output")) {
+        std::cerr << options.help({""}) << std::endl;
+        exit(-1);
+    }
 
     srand(time(NULL));
 
-    Galaxy galaxy("tiles.json");
+    Galaxy galaxy(result["tiles"].as<string>());
     float score = galaxy.evaluate_grid();
     cout << "Score: " << score << endl;
     galaxy.optimize_grid();
     score = galaxy.evaluate_grid();
     cout << "Score: " << score << endl;
     galaxy.print_grid();
-    galaxy.write_json("galaxy.json");
+    galaxy.write_json(result["output"].as<string>());
 
     return 0;
 }
