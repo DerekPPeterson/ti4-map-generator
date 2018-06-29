@@ -9,6 +9,9 @@ TILE_IMAGE_Y = 774
 
 
 def get_tile_image(number):
+    if not number:
+        return None
+
     try:
         return TILE_IMAGES[number]
     except KeyError:
@@ -51,7 +54,7 @@ if __name__ == "__main__":
     json_file = open("galaxy.json")
     galaxy = json.load(json_file)
     image = create_galaxy_image(galaxy["grid"])
-    image.save("test.png", "PNG")
+    image.resize((900, 900), Image.BICUBIC).save("test.png", "PNG")
 
 
 1
