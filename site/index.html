@@ -110,6 +110,9 @@
 					return;
 				}
 
+				var loading = $('<img src="./res/loading.gif">');
+				$("#galaxy_image_div").html(loading);
+
 				var get = $.get("./cgi-bin/ti4-map-generator-cgi.py", 
 					{
 						bw: $("#bw:checked").val(),
