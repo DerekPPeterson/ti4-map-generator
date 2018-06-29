@@ -123,6 +123,7 @@ class Tile
 
     public:
     Tile(int);
+    Tile(int, string);
     Tile(int, list<Planet>, Wormhole, Anomaly);
     Tile(int, list<Planet>, string race);
     string get_description_string() const;
@@ -195,6 +196,11 @@ Tile::Tile(int n)
     race = "";
 }
 
+Tile::Tile(int n, string race1)
+{
+    number = n;
+    race = race1;
+}
 
 Tile::Tile(int n, list<Planet> p, Wormhole w, Anomaly a)
 {
@@ -265,7 +271,8 @@ Galaxy::Galaxy(string tile_filename)
     : boundary_tile(0)
 {
     import_tiles(tile_filename);
-    random_home_tiles(6);
+    //random_home_tiles(6);
+    dummy_home_tiles(6);
     initialize_grid();
 
     //for (auto i : tiles) {
@@ -378,8 +385,9 @@ void Galaxy::random_home_tiles(int n) {
 }
 
 void Galaxy::dummy_home_tiles(int n) {
+    home_systems.clear();
     for (int i = 0; i < n; i++) {
-        Tile new_tile = Tile(-i - 1);
+        Tile new_tile = Tile(-i - 1, "Home System");
         tiles.push_back(new_tile);
         home_systems.push_back(&tiles.back());
     }
