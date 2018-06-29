@@ -1,0 +1,13 @@
+.ropeproject
+.ycm_extra_conf.py
+CMakeCache.txt
+CMakeFiles/
+Makefile
+__pycache__
+cmake_install.cmake
+compile_commands.json
+*.pyc
+gmon.out
+ti4-map-generator
+/site/generated/*
+
