@@ -75,6 +75,11 @@ def create_galaxy_image_from_grid(grid):
                 text_color = (255, 255, 255, 255)
 
             if grid[i][j] > 0:
+                outline_thickness = 2
+                d.text((text_coords[0] - outline_thickness, text_coords[1] + outline_thickness), str(grid[i][j]), font=font, fill=(0, 0, 0, 100))
+                d.text((text_coords[0] - outline_thickness, text_coords[1] - outline_thickness), str(grid[i][j]), font=font, fill=(0, 0, 0, 100))
+                d.text((text_coords[0] + outline_thickness, text_coords[1] + outline_thickness), str(grid[i][j]), font=font, fill=(0, 0, 0, 100))
+                d.text((text_coords[0] + outline_thickness, text_coords[1] - outline_thickness), str(grid[i][j]), font=font, fill=(0, 0, 0, 100))
                 d.text(text_coords, str(grid[i][j]), font=font, fill=text_color)
             #d.text(text_coords, "{},{}".format(i, j), font=font, fill=text_color)
 
