@@ -259,6 +259,8 @@ class Galaxy
     vector<pair<Tile*, Tile*>> make_swap_list();
     bool is_wormhole_near_creuss(int near_dist, double_tile_map distances);
     bool is_supernova_near_muaat(int near_dist, double_tile_map distances);
+    bool winnu_have_clear_path_to_mecatol(double_tile_map distances);
+
 
     public:
     Galaxy(string tile_filename, int n_players, HomeSystemSetups, 
@@ -652,12 +654,12 @@ float coefficient_of_variation(list<float> l) {
     return sum / l.size() / avg;
 }
 
-/* Returns true if there exists a wormhole tile with a distane to the creuss
+/* Returns true if there exists a supernova tile with a distance to the muaat
  * home system less than or equal to near_dist
  */
 bool Galaxy::is_supernova_near_muaat(int near_dist, double_tile_map distances)
 {
-    // Check to see if creuss is in this game
+    // Check to see if muaat is in this game
     int muaat_tile_number = 4;
     Tile* muaat_home_tile = NULL;
     for (auto hs : home_systems) {
@@ -683,9 +685,33 @@ bool Galaxy::is_supernova_near_muaat(int near_dist, double_tile_map distances)
 /* Returns true if there exists a wormhole tile with a distane to the creuss
  * home system less than or equal to near_dist
  */
+bool Galaxy::winnu_have_clear_path_to_mecatol(double_tile_map distances)
+{
+    // Check to see if Winnu is in this game
+    int winnu_tile_number = 7;
+    Tile* winnu_home_tile = NULL;
+    for (auto hs : home_systems) {
+        if (hs->get_number() == winnu_tile_number) {
+            winnu_home_tile = hs;
+        }
+    }
+    // No penalty if winnu are not in this game
+    if (not winnu_home_tile) {
+        return 0;
+    }
+
+    // TODO needs to change for non-standard board shapes if they ever get supported
+    if (distances[winnu_home_tile][mecatol] <= 3) {
+        return true;
+    }
+    return false;
+}
+
+/* Returns true if there is a clear path for winnu to mecatol
+ */
 bool Galaxy::is_wormhole_near_creuss(int near_dist, double_tile_map distances)
 {
-    // Check to see if creuss is in this game
+    // Check to see if winnu is in this game
     int creuss_tile_number = 17;
     Tile* creuss_home_tile = NULL;
     for (auto hs : home_systems) {
@@ -759,6 +785,11 @@ float Galaxy::evaluate_grid() {
     if (evaluate_options["creuss_gets_wormhole"]) {
         if (not is_wormhole_near_creuss(evaluate_options["creuss_gets_wormhole"], 
                     distances_from_home_systems)) {
+            score += 10;
+        }
+    }
+    if (evaluate_options["winnu_have_clear_path_to_mecatol"]) {
+        if (not winnu_have_clear_path_to_mecatol( distances_from_home_systems)) {
             score += 10;
         }
     }
@@ -899,6 +930,7 @@ int main(int argc, char *argv[]) {
             ("h,help", "Print help")
             ("creuss_gets_wormhole", "If creuss in game place a wormhole within x distance of it", cxxopts::value<int>()->default_value("1"))
             ("muaat_gets_supernova", "If muaat in game place the supernova within x distance of it", cxxopts::value<int>()->default_value("1"))
+            ("winnu_have_clear_path_to_mecatol", "If winnu in game give them a clear path to mecatol", cxxopts::value<int>()->default_value("1"))
             ;
     auto result = options.parse(argc, argv);
 
@@ -935,14 +967,12 @@ int main(int argc, char *argv[]) {
     cout << "Score: " << score << endl;
     galaxy.set_evaluate_option("creuss_gets_wormhole", result["creuss_gets_wormhole"].as<int>());
     galaxy.set_evaluate_option("muaat_gets_supernova", result["muaat_gets_supernova"].as<int>());
+    galaxy.set_evaluate_option("winnu_have_clear_path_to_mecatol", result["winnu_have_clear_path_to_mecatol"].as<int>());
     galaxy.optimize_grid();
     score = galaxy.evaluate_grid();
     cout << "Score: " << score << endl;
     galaxy.print_grid();
     galaxy.write_json(result["output"].as<string>());
-
-    galaxy.print_distances_from(4);
-
 
     return 0;
 }
