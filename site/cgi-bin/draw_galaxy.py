@@ -4,8 +4,8 @@ import os
 
 TILE_IMAGES = {}
 TILE_DIR = "../res"
-TILE_IMAGE_X = 900
-TILE_IMAGE_Y = 774
+TILE_IMAGE_X = 200
+TILE_IMAGE_Y = 172
 FONT_PATH = "../res/Slider Regular.ttf"
 BW = False
 
@@ -21,11 +21,11 @@ def get_tile_image(number):
 
     if (BW):
         number = 0
-        image_filename = os.path.join(TILE_DIR, "tilebw.png")
+        image_filename = os.path.join(TILE_DIR, "small-tilebw.png")
     elif (number < 0):
-        image_filename = os.path.join(TILE_DIR, "tilehome.png")
+        image_filename = os.path.join(TILE_DIR, "small-tilehome.png")
     else:
-        image_filename = os.path.join(TILE_DIR, "tile%d.png" % number)
+        image_filename = os.path.join(TILE_DIR, "small-tile%d.png" % number)
 
     try:
         TILE_IMAGES[number] = Image.open(image_filename)
