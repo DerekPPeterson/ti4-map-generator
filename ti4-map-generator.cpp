@@ -252,7 +252,7 @@ class Galaxy
     list<Tile*> movable_systems;
     map<Wormhole, list<Tile*>> wormhole_systems;
     Tile boundary_tile; // used for inaccesable locations in the grid
-    map<string, int> evaluate_options;
+    map<string, float> evaluate_options;
 
     void import_tiles(string tile_filename);
     void random_home_tiles(int n);
@@ -277,7 +277,7 @@ class Galaxy
             string home_tile_ids);
     void print_grid();
     void print_distances_from(int);
-    void set_evaluate_option(string name, int val);
+    void set_evaluate_option(string name, float val);
     float evaluate_grid();
     void optimize_grid();
     void write_json(string filename);
@@ -751,7 +751,7 @@ bool Galaxy::is_wormhole_near_creuss(int near_dist, double_tile_map distances)
     return false;
 }
 
-void Galaxy::set_evaluate_option(string name, int val)
+void Galaxy::set_evaluate_option(string name, float val)
 {
     evaluate_options[name] = val;
 }
@@ -849,12 +849,14 @@ float Galaxy::evaluate_grid() {
     //            hs->get_description_string().c_str());
     //}
     //printf("%2.1f %2.1f %s\n", total_resources, total_influence, "Totals");
-    //printf("%0.3f %0.3f %s\n", coefficient_of_variation(resource_shares), 
-    //        coefficient_of_variation(influence_shares), "CVs");
+    //printf("%0.3f %0.3f %03f %s\n", coefficient_of_variation(resource_shares), 
+    //        coefficient_of_variation(influence_shares), 
+    //        coefficient_of_variation(tech_shares), 
+    //        "CVs");
     
-    score += coefficient_of_variation(resource_shares) 
-           + coefficient_of_variation(influence_shares)
-           + coefficient_of_variation(tech_shares); 
+    score += coefficient_of_variation(resource_shares) * evaluate_options["resource_weight"]
+           + coefficient_of_variation(influence_shares) * evaluate_options["influence_weight"]
+           + coefficient_of_variation(tech_shares) * evaluate_options["tech_weight"];
 
     return score;
 }
@@ -946,6 +948,7 @@ int main(int argc, char *argv[]) {
 
     cxxopts::Options options("ti4-map-generator", "Generate balanced TI4 maps");
     options.add_options()
+            ("h,help", "Print help")
             ("t,tiles", "json file defining tile properites", cxxopts::value<std::string>())
             ("o,output", "galaxy json output filename", cxxopts::value<std::string>())
             ("p,players", "number of players", cxxopts::value<int>()->default_value("6"))
@@ -953,10 +956,12 @@ int main(int argc, char *argv[]) {
             ("random_homes", "use random race home systems")
             ("choose_homes", "use with --races option")
             ("r,races", "list of home system tile numbers like so \"1 2 5...\"", cxxopts::value<string>()->default_value("6"))
-            ("h,help", "Print help")
             ("creuss_gets_wormhole", "If creuss in game place a wormhole within x distance of it", cxxopts::value<int>()->default_value("1"))
             ("muaat_gets_supernova", "If muaat in game place the supernova within x distance of it", cxxopts::value<int>()->default_value("1"))
             ("winnu_have_clear_path_to_mecatol", "If winnu in game give them a clear path to mecatol", cxxopts::value<int>()->default_value("1"))
+            ("resource_weight", "Relative weight of resource variance", cxxopts::value<float>()->default_value("1.0"))
+            ("influence_weight", "Relative weight of infuence variance", cxxopts::value<float>()->default_value("1.0"))
+            ("tech_weight", "Relative weight of tech specialty variance", cxxopts::value<float>()->default_value("1.0"))
             ;
     auto result = options.parse(argc, argv);
 
@@ -991,9 +996,15 @@ int main(int argc, char *argv[]) {
     Galaxy galaxy(result["tiles"].as<string>(), result["players"].as<int>(), hss, races);
     float score = galaxy.evaluate_grid();
     cout << "Score: " << score << endl;
+
     galaxy.set_evaluate_option("creuss_gets_wormhole", result["creuss_gets_wormhole"].as<int>());
     galaxy.set_evaluate_option("muaat_gets_supernova", result["muaat_gets_supernova"].as<int>());
     galaxy.set_evaluate_option("winnu_have_clear_path_to_mecatol", result["winnu_have_clear_path_to_mecatol"].as<int>());
+
+    galaxy.set_evaluate_option("resource_weight", result["resource_weight"].as<float>());
+    galaxy.set_evaluate_option("influence_weight", result["influence_weight"].as<float>());
+    galaxy.set_evaluate_option("tech_weight", result["tech_weight"].as<float>());
+
     galaxy.optimize_grid();
     score = galaxy.evaluate_grid();
     cout << "Score: " << score << endl;
