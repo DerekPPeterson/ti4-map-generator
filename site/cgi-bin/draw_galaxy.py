@@ -87,7 +87,9 @@ def create_galaxy_image(galaxy_json_filename, output_filename, box=(900, 900)):
     json_file = open(galaxy_json_filename)
     galaxy = json.load(json_file)
     image = create_galaxy_image_from_grid(galaxy["grid"])
-    image.resize(box, Image.BICUBIC).save(output_filename, "PNG")
+    image = image.resize(box, Image.BICUBIC)
+    image = image.crop(image.getbbox())
+    image.save(output_filename, "PNG")
 
 
 if __name__ == "__main__":
