@@ -52,7 +52,6 @@ def calc_text_coords(i, j, n_row_offset):
                 coords[1] + TILE_IMAGE_Y / 3)
 
 
-
 def create_galaxy_image_from_grid(grid):
     output = Image.new('RGBA',
                        (int(TILE_IMAGE_X * (6 * 0.75 + 1)), TILE_IMAGE_Y * 7),

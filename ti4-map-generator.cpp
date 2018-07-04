@@ -264,7 +264,6 @@ class Galaxy
     Tile* get_tile_at(Location location);
     list<Tile*> get_adjacent(Tile* t1);
     map<Tile*, float> distance_to_other_tiles(Tile* t1);
-    void visit_all(Tile* t1, map<Tile*, float>& visited, float distance);
     double_tile_map calculate_stakes(double_tile_map distances);
     vector<pair<Tile*, Tile*>> make_swap_list();
     bool is_wormhole_near_creuss(int near_dist, double_tile_map distances);
@@ -564,57 +563,49 @@ list<Tile*> Galaxy::get_adjacent(Tile *t1)
     return adjacent;
 };
 
-
-void Galaxy::visit_all(Tile* t, map<Tile*, float>& visited, float distance)
-{
-    if (distance > 10) {
-        return;
-    }
-   //cout << "distance " << distance << " at " << t << " " << t->get_description_string() << endl;
-    
-    float move_cost;
-    // TODO: configure these?
-    switch (t->get_anomaly()) {
-        case NEBULA: move_cost = 2;
-                     break;
-        case ASTEROID_FIELD: move_cost = 1.5;
-                             break;
-        case SUPERNOVA: move_cost = 1;  // can't go through supernovas
-                        break;          // will return early from this function
-                                        // rather than change move cost
-        case GRAVITY_RIFT: move_cost = 1; // TODO is this really the best cost?
-                           break;
-        default : move_cost = 1;
-    }
-
-    // don't travel through other home systems either
-    if (t->is_home_system() and distance > 0) {
-        return;
-    }
-
-    // If we didn't already visit, or our trip was shorter record distance and keep going
-    if ((not visited.count(t)) or visited[t] > distance) {
-        visited[t] = distance;
-
-        // We can't pass through a supernova to other systems
-        if (t->get_anomaly() == SUPERNOVA) {
-            return;
-        }
-        //for(auto adjacent : get_adjacent(t)) {
-        //    cout << " Will visit " << adjacent->get_description_string() << endl;
-        //}
-        for(auto adjacent : get_adjacent(t)) {
-            visit_all(adjacent, visited, distance + move_cost);
-        }
-    }
-}
+struct VisitInfo {
+    Tile* tile;
+    float distance_to;
+};
 
 map<Tile*, float> Galaxy::distance_to_other_tiles(Tile* t1) {
     map<Tile*, float> visited;
-    visit_all(t1, visited, 0);
-    return visited;
 
+    list<VisitInfo> to_visit;
+    to_visit.push_back({t1, 0});
+
+    while (to_visit.size()) {
+        auto cur_tile = to_visit.front().tile;
+        auto distance = to_visit.front().distance_to;
+        to_visit.pop_front();
+
+        // Skip home systems that are not the start system
+        if (cur_tile->is_home_system() and distance > 0) {
+            continue;
+        }
+
+        // If we didn't already visit the current tile or we got here via a
+        // shorter distance, record the new distance and keep going
+        if ((not visited.count(cur_tile)) or visited[cur_tile] > distance) {
+            visited[cur_tile] = distance;
+
+            // TODO: configure these?
+            float move_cost;
+            switch (cur_tile->get_anomaly()) {
+                case NEBULA: move_cost = 2; break;
+                case ASTEROID_FIELD: move_cost = 1.5; break;
+                case SUPERNOVA: continue;
+                case GRAVITY_RIFT: move_cost = 1; break; 
+                default : move_cost = 1;
+            }
+
+            for (auto adjacent : get_adjacent(cur_tile)) {
+                to_visit.push_back({adjacent, distance + move_cost});
+            }
+        }
+    }
     
+    return visited;
 }
 
 
