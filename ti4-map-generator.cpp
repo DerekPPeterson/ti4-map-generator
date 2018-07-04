@@ -258,6 +258,7 @@ class Galaxy
     double_tile_map calculate_stakes(double_tile_map distances);
     vector<pair<Tile*, Tile*>> make_swap_list();
     bool is_wormhole_near_creuss(int near_dist, double_tile_map distances);
+    bool is_supernova_near_muaat(int near_dist, double_tile_map distances);
 
     public:
     Galaxy(string tile_filename, int n_players, HomeSystemSetups, 
@@ -565,7 +566,9 @@ void Galaxy::visit_all(Tile* t, map<Tile*, float>& visited, float distance)
         case NEBULA: move_cost = 2;
                      break;
         case ASTEROID_FIELD: move_cost = 1.5;
-        case SUPERNOVA: return; // can't go through supernovas
+        case SUPERNOVA: move_cost = 1;  // can't go through supernovas
+                                        // will return early from this function
+                                        // rather than change move cost
         case GRAVITY_RIFT: move_cost = 1;
         default : move_cost = 1;
     }
@@ -578,6 +581,9 @@ void Galaxy::visit_all(Tile* t, map<Tile*, float>& visited, float distance)
     // If we didn't already visit, or our trip was shorter record distance and keep going
     if ((not visited.count(t)) or visited[t] > distance) {
         visited[t] = distance;
+        if (t->get_anomaly() == SUPERNOVA) {
+            return;
+        }
         //for(auto adjacent : get_adjacent(t)) {
         //    cout << " Will visit " << adjacent->get_description_string() << endl;
         //}
@@ -644,6 +650,34 @@ float coefficient_of_variation(list<float> l) {
         sum += pow(it - avg, 2);
     }
     return sum / l.size() / avg;
+}
+
+/* Returns true if there exists a wormhole tile with a distane to the creuss
+ * home system less than or equal to near_dist
+ */
+bool Galaxy::is_supernova_near_muaat(int near_dist, double_tile_map distances)
+{
+    // Check to see if creuss is in this game
+    int muaat_tile_number = 4;
+    Tile* muaat_home_tile = NULL;
+    for (auto hs : home_systems) {
+        if (hs->get_number() == muaat_tile_number) {
+            muaat_home_tile = hs;
+        }
+    }
+    // No penalty if muaat are not in this game
+    if (not muaat_home_tile) {
+        return 0;
+    }
+
+    for (auto t : movable_systems) {
+        if (t->get_anomaly() == SUPERNOVA) {
+            if (distances[muaat_home_tile][t] <= near_dist) {
+                return true;
+            }
+        }
+    }
+    return false;
 }
 
 /* Returns true if there exists a wormhole tile with a distane to the creuss
@@ -716,6 +750,12 @@ float Galaxy::evaluate_grid() {
   
    
     float score = 0;
+    if (evaluate_options["muaat_gets_supernova"]) {
+        if (not is_supernova_near_muaat(evaluate_options["muaat_gets_supernova"], 
+                    distances_from_home_systems)) {
+            score += 10;
+        }
+    }
     if (evaluate_options["creuss_gets_wormhole"]) {
         if (not is_wormhole_near_creuss(evaluate_options["creuss_gets_wormhole"], 
                     distances_from_home_systems)) {
@@ -858,6 +898,7 @@ int main(int argc, char *argv[]) {
             ("r,races", "list of home system tile numbers like so \"1 2 5...\"", cxxopts::value<string>()->default_value("6"))
             ("h,help", "Print help")
             ("creuss_gets_wormhole", "If creuss in game place a wormhole within x distance of it", cxxopts::value<int>()->default_value("1"))
+            ("muaat_gets_supernova", "If muaat in game place the supernova within x distance of it", cxxopts::value<int>()->default_value("1"))
             ;
     auto result = options.parse(argc, argv);
 
@@ -893,13 +934,14 @@ int main(int argc, char *argv[]) {
     float score = galaxy.evaluate_grid();
     cout << "Score: " << score << endl;
     galaxy.set_evaluate_option("creuss_gets_wormhole", result["creuss_gets_wormhole"].as<int>());
+    galaxy.set_evaluate_option("muaat_gets_supernova", result["muaat_gets_supernova"].as<int>());
     galaxy.optimize_grid();
     score = galaxy.evaluate_grid();
     cout << "Score: " << score << endl;
     galaxy.print_grid();
     galaxy.write_json(result["output"].as<string>());
 
-    galaxy.print_distances_from(17);
+    galaxy.print_distances_from(4);
 
 
     return 0;
