@@ -242,6 +242,7 @@ class Galaxy
     list<Tile*> movable_systems;
     map<Wormhole, list<Tile*>> wormhole_systems;
     Tile boundary_tile; // used for inaccesable locations in the grid
+    map<string, int> evaluate_options;
 
     void import_tiles(string tile_filename);
     void random_home_tiles(int n);
@@ -256,10 +257,14 @@ class Galaxy
     void visit_all(Tile* t1, map<Tile*, float>& visited, float distance);
     double_tile_map calculate_stakes(double_tile_map distances);
     vector<pair<Tile*, Tile*>> make_swap_list();
+    bool is_wormhole_near_creuss(int near_dist, double_tile_map distances);
 
     public:
-    Galaxy(string tile_filename, int n_players, HomeSystemSetups, string home_tile_ids);
+    Galaxy(string tile_filename, int n_players, HomeSystemSetups, 
+            string home_tile_ids);
     void print_grid();
+    void print_distances_from(int);
+    void set_evaluate_option(string name, int val);
     float evaluate_grid();
     void optimize_grid();
     void write_json(string filename);
@@ -641,11 +646,61 @@ float coefficient_of_variation(list<float> l) {
     return sum / l.size() / avg;
 }
 
+/* Returns true if there exists a wormhole tile with a distane to the creuss
+ * home system less than or equal to near_dist
+ */
+bool Galaxy::is_wormhole_near_creuss(int near_dist, double_tile_map distances)
+{
+    // Check to see if creuss is in this game
+    int creuss_tile_number = 17;
+    Tile* creuss_home_tile = NULL;
+    for (auto hs : home_systems) {
+        if (hs->get_number() == creuss_tile_number) {
+            creuss_home_tile = hs;
+        }
+    }
+    // No penalty if creuss are not in this game
+    if (not creuss_home_tile) {
+        return 0;
+    }
+
+    for (auto t : movable_systems) {
+        if (t->get_wormhole() and t->get_wormhole() != DELTA) {
+            if (distances[creuss_home_tile][t] <= near_dist) {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
+void Galaxy::set_evaluate_option(string name, int val)
+{
+    evaluate_options[name] = val;
+}
+
+void Galaxy::print_distances_from(int tile_num)
+{
+    Tile* home_tile = NULL;
+    for (auto hs : home_systems) {
+        if (hs->get_number() == tile_num) {
+            home_tile = hs;
+        }
+    }
+    if (not home_tile) {
+        cout << "TIle not found" << endl;
+    }
+
+    map<Tile*, float> dists = distance_to_other_tiles(home_tile);
+    cout << "Distance from tile " << home_tile->get_number() << " to tile:" << endl;
+    for (auto dist : dists) {
+        cout << "\t" << dist.first->get_number() << " " << dist.second << endl;
+    }
+}
 
 float Galaxy::evaluate_grid() {
-    float score = 0;
     
-    map<Tile*, map<Tile*, float>> distances_from_home_systems;
+    double_tile_map distances_from_home_systems;
 
     for (auto home_system : home_systems) {
         distances_from_home_systems[home_system] = distance_to_other_tiles(home_system);
@@ -658,6 +713,15 @@ float Galaxy::evaluate_grid() {
     //        cout << "\t" << it2.second << " " << it2.first->get_description_string() << endl;
     //    }
     //}
+  
+   
+    float score = 0;
+    if (evaluate_options["creuss_gets_wormhole"]) {
+        if (not is_wormhole_near_creuss(evaluate_options["creuss_gets_wormhole"], 
+                    distances_from_home_systems)) {
+            score += 10;
+        }
+    }
 
     Scores scores;
 
@@ -691,8 +755,11 @@ float Galaxy::evaluate_grid() {
     //printf("%2.1f %2.1f %s\n", total_resources, total_influence, "Totals");
     //printf("%0.3f %0.3f %s\n", coefficient_of_variation(resource_shares), 
     //        coefficient_of_variation(influence_shares), "CVs");
+    
+    score += coefficient_of_variation(resource_shares) 
+           + coefficient_of_variation(influence_shares); 
 
-    return coefficient_of_variation(resource_shares) + coefficient_of_variation(influence_shares);
+    return score;
 }
 
 void Galaxy::swap_tiles(Tile* a, Tile* b)
@@ -790,6 +857,7 @@ int main(int argc, char *argv[]) {
             ("choose_homes", "use with --races option")
             ("r,races", "list of home system tile numbers like so \"1 2 5...\"", cxxopts::value<string>()->default_value("6"))
             ("h,help", "Print help")
+            ("creuss_gets_wormhole", "If creuss in game place a wormhole within x distance of it", cxxopts::value<int>()->default_value("1"))
             ;
     auto result = options.parse(argc, argv);
 
@@ -824,11 +892,14 @@ int main(int argc, char *argv[]) {
     Galaxy galaxy(result["tiles"].as<string>(), result["players"].as<int>(), hss, races);
     float score = galaxy.evaluate_grid();
     cout << "Score: " << score << endl;
+    galaxy.set_evaluate_option("creuss_gets_wormhole", result["creuss_gets_wormhole"].as<int>());
     galaxy.optimize_grid();
     score = galaxy.evaluate_grid();
     cout << "Score: " << score << endl;
     galaxy.print_grid();
     galaxy.write_json(result["output"].as<string>());
+
+    galaxy.print_distances_from(17);
 
 
     return 0;
