@@ -9,35 +9,37 @@
 
 <body>
 	<h1>TWILIGHT IMPERIUM IV BALANCED MAP GENERATOR</h1>
-	<form id="generate_form" action="./cgi-bin/ti4-map-generator-cgi.py">
-		Number of Players:
-		<select id="n_players" name="n_players">
-			<option value=6>6</option>
-			<option value=5>5</option>
-			<option value=4>4</option>
-			<option value=3>3</option>
-		</select>
-		<br>
+	<div id="text_div" style="float:left">
+		<form id="generate_form" action="./cgi-bin/ti4-map-generator-cgi.py">
+			Number of Players:
+			<select id="n_players" name="n_players">
+				<option value=6>6</option>
+				<option value=5>5</option>
+				<option value=4>4</option>
+				<option value=3>3</option>
+			</select>
+			<br>
 
-		<label><input type="radio" id="race_selection_method" name="race_selection_method" value="dummy" checked> Blank Home Systems</label>
-		<label><input type="radio" id="race_selection_method" name="race_selection_method" value="random"> Random Races</label>
-		<label><input type="radio" id="race_selection_method" name="race_selection_method" value="chosen"> Select Races</label><br>
-		<div id="race_select_div"></div>
+			<label><input type="radio" id="race_selection_method" name="race_selection_method" value="dummy" checked> Blank Home Systems</label>
+			<label><input type="radio" id="race_selection_method" name="race_selection_method" value="random"> Random Races</label>
+			<label><input type="radio" id="race_selection_method" name="race_selection_method" value="chosen"> Select Races</label><br>
+			<div id="race_select_div"></div>
 
-		Display in:
-		<label><input type="radio" id="bw" name="bw" value="false" checked>Colour</label>
-		<label><input type="radio" id="bw" name="bw" value="true"> Black and White</label><br>
+			Display in:
+			<label><input type="radio" id="bw" name="bw" value="false" checked>Colour</label>
+			<label><input type="radio" id="bw" name="bw" value="true"> Black and White</label><br>
 
-		Optimization Settings:<br>
-		<label><input type="CHECKBOX" id="creuss_gets_wormhole" name="creuss_gets_wormhole" checked>Give the Ghosts of Creuss a Wormhole</label><br>
-		<label><input type="CHECKBOX" id="muaat_gets_supernova" name="muaat_gets_supernova" checked>Give the Embers of Muaat a Supernova</label><br>
-		<label><input type="CHECKBOX" id="winnu_clear_path_to_mecatol" name="winnu_clear_path_to_mecatol" checked>Make sure the Winnu have a clear path to Mecatol Rex</label><br>
+			Optimization Settings:<br>
+			<label><input type="CHECKBOX" id="creuss_gets_wormhole" name="creuss_gets_wormhole" checked>Give the Ghosts of Creuss a Wormhole</label><br>
+			<label><input type="CHECKBOX" id="muaat_gets_supernova" name="muaat_gets_supernova" checked>Give the Embers of Muaat a Supernova</label><br>
+			<label><input type="CHECKBOX" id="winnu_clear_path_to_mecatol" name="winnu_clear_path_to_mecatol" checked>Make sure the Winnu have a clear path to Mecatol Rex</label><br>
 
 
-		<input type="submit" value="Generate">
-	</form>
+			<input type="submit" value="Generate">
+		</form>
+	</div>
 			
-	<div id="galaxy_image_div"></div>
+	<div id="galaxy_image_div" style="float:left;"></div>
 
 	<script text/javascript>
 		$("#document").ready(function() {
