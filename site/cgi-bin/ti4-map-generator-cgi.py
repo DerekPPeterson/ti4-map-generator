@@ -16,6 +16,10 @@ def random_string(N):
     return ''.join(random.choice(string.ascii_uppercase) for _ in range(N))
 
 
+def remove_other_chars(s, allowed):
+    return ''.join(c for c in s if c in allowed)
+
+
 def generate_galaxy(args):
 
     if "bw" in args and args["bw"].value == "true":
@@ -35,7 +39,8 @@ def generate_galaxy(args):
         if args["race_selection_method"].value == "random":
             cmd += ["--random_homes"]
         elif args["race_selection_method"].value == "chosen":
-            cmd += ["--choose_homes", "--races", args["races"].value]
+            cmd += ["--choose_homes", "--races",
+                    remove_other_chars(args["races"].value, " 012345678")]
         else:
             cmd += ["--dummy_homes"]
 
