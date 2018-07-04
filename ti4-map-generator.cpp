@@ -704,6 +704,8 @@ void Galaxy::swap_tiles(Tile* a, Tile* b)
     place_tile(b_start, a);
 }
 
+/* Returns every possible combination of swappable tiles
+ */
 vector<pair<Tile*, Tile*>> Galaxy::make_swap_list()
 {
     vector<pair<Tile*, Tile*>> swap_list;
@@ -718,15 +720,21 @@ vector<pair<Tile*, Tile*>> Galaxy::make_swap_list()
     return swap_list;
 }
 
+/* optimize_grid
+ * Swaps tiles to maximize the score of the current grid until no more swaps 
+ * can be made. The score is defined by evaluate_grid
+ */
 void Galaxy::optimize_grid()
 {
     float current_score = evaluate_grid();
     bool better_score_found = 0;
 
     int n_swaps = 0;
-    int swaps_until_quit = 100;
+    // Set to a very high value to test all swaps
+    int swaps_until_quit = 100000;
 
     do {
+        better_score_found = false;
         auto swaps = make_swap_list();
 
         n_swaps = 0;
@@ -737,8 +745,8 @@ void Galaxy::optimize_grid()
                 better_score_found = true;
                 current_score = new_score;
                 printf("Swapping tiles %d & %d, new_score: %0.3f\n", 
-                        swap.first->get_number(), swap.second->get_number(), current_score);
-                //print_grid();
+                        swap.first->get_number(), swap.second->get_number(), 
+                        current_score);
                 break;
             } else {
                 swap_tiles(swap.first, swap.second);
