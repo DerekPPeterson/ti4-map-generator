@@ -6,3 +6,11 @@
 * {
 	font-family: 'ti_font';
 }
+
+label {
+	display: inline-block;
+}
+
+input[type=submit] {
+	    width: 20em;  height: 2em;
+}
