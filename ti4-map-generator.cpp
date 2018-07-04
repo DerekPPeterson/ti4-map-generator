@@ -462,7 +462,7 @@ void Galaxy::initialize_grid(int n_players) {
     // Place Mecatol at centre of galaxy
     place_tile({3, 3}, mecatol);
 
-    // Place home systems // TODO for other counts than 6p
+    // Place home systems // TODO for custom shapes
     vector<Location> start_positions;
     switch (n_players) {
         case 3: {vector<Location> tmp = {{0,0},{3,6},{6,3}}; start_positions = tmp; break;}
@@ -471,7 +471,7 @@ void Galaxy::initialize_grid(int n_players) {
         case 6: {vector<Location> tmp = {{0,0},{0,3},{3,6},{6,6},{6,3},{3,0}}; start_positions = tmp; break;}
     }
     int i = 0;
-    for (auto it : home_systems) {
+    for (auto it : get_shuffled_list(home_systems)) {
         place_tile(start_positions[i], it);
         i++;
     }
@@ -568,10 +568,12 @@ void Galaxy::visit_all(Tile* t, map<Tile*, float>& visited, float distance)
         case NEBULA: move_cost = 2;
                      break;
         case ASTEROID_FIELD: move_cost = 1.5;
+                             break;
         case SUPERNOVA: move_cost = 1;  // can't go through supernovas
-                                        // will return early from this function
+                        break;          // will return early from this function
                                         // rather than change move cost
-        case GRAVITY_RIFT: move_cost = 1;
+        case GRAVITY_RIFT: move_cost = 1; // TODO is this really the best cost?
+                           break;
         default : move_cost = 1;
     }
 
