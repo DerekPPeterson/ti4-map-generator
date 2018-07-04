@@ -38,7 +38,7 @@ static map<string, PlanetTrait> trait_key = {
 
 enum TechColor
 {
-    NO_COLOR,
+    NO_TECH,
     BLUE,
     RED,
     GREEN,
@@ -46,7 +46,7 @@ enum TechColor
 };
 
 static map<string, TechColor> tech_key = {
-    {"NO_TECH", NO_COLOR},
+    {"NO_TECH", NO_TECH},
     {"BLUE", BLUE},
     {"RED", RED},
     {"GREEN", GREEN},
@@ -132,6 +132,7 @@ class Tile
     int get_number();
     Wormhole get_wormhole();
     Anomaly get_anomaly();
+    TechColor get_techcolor();
     void set_location(Location);
     Location get_location();
     int get_resource_value();
@@ -155,6 +156,15 @@ int Tile::get_number() {
 
 Anomaly Tile::get_anomaly() {
     return anomaly;
+}
+
+TechColor Tile::get_techcolor() {
+   for (auto p : planets) {
+       if (p.tech) {
+           return p.tech;
+       }
+   }
+   return NO_TECH;
 }
 
 Wormhole Tile::get_wormhole() {
@@ -585,6 +595,8 @@ void Galaxy::visit_all(Tile* t, map<Tile*, float>& visited, float distance)
     // If we didn't already visit, or our trip was shorter record distance and keep going
     if ((not visited.count(t)) or visited[t] > distance) {
         visited[t] = distance;
+
+        // We can't pass through a supernova to other systems
         if (t->get_anomaly() == SUPERNOVA) {
             return;
         }
@@ -601,6 +613,8 @@ map<Tile*, float> Galaxy::distance_to_other_tiles(Tile* t1) {
     map<Tile*, float> visited;
     visit_all(t1, visited, 0);
     return visited;
+
+    
 }
 
 
@@ -636,6 +650,7 @@ typedef struct Scores
 {
     map<Tile*, float> resource_share;
     map<Tile*, float> influence_share;
+    map<Tile*, float> tech_share;
 } Scores;
 
 float average(list<float> l) 
@@ -778,6 +793,9 @@ float Galaxy::evaluate_grid() {
   
    
     float score = 0;
+
+    // Some race specific options if requested. the large score penalty ensures
+    // that these will be satisfied if possible
     if (evaluate_options["muaat_gets_supernova"]) {
         if (not is_supernova_near_muaat(evaluate_options["muaat_gets_supernova"], 
                     distances_from_home_systems)) {
@@ -802,19 +820,24 @@ float Galaxy::evaluate_grid() {
     float total_influence = 0;
     list<float> resource_shares;
     list<float> influence_shares;
-    list<float> combined_shares;;
+    list<float> combined_shares;
+    list<float> tech_shares;
     for (auto home_system : home_systems) {
         float resource_share = 0;
         float influence_share = 0;
+        float tech_share = 0;
         for (auto tile : movable_systems) {
             resource_share += tile->get_resource_value() * stakes[tile][home_system];
             influence_share += tile->get_influence_value() * stakes[tile][home_system];
+            tech_share += tile->get_techcolor() ? stakes[tile][home_system] : 0;
         }
         scores.resource_share[home_system] = resource_share;
         scores.influence_share[home_system] = influence_share;
+        scores.tech_share[home_system] = tech_share;
 
         resource_shares.push_back(resource_share);
         influence_shares.push_back(influence_share);
+        tech_shares.push_back(tech_share);
         combined_shares.push_back(resource_share + influence_share);
 
         total_resources += resource_share;
@@ -830,7 +853,8 @@ float Galaxy::evaluate_grid() {
     //        coefficient_of_variation(influence_shares), "CVs");
     
     score += coefficient_of_variation(resource_shares) 
-           + coefficient_of_variation(influence_shares); 
+           + coefficient_of_variation(influence_shares)
+           + coefficient_of_variation(tech_shares); 
 
     return score;
 }
