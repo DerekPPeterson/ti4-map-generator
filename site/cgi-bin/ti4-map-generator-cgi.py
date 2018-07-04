@@ -39,6 +39,21 @@ def generate_galaxy(args):
         else:
             cmd += ["--dummy_homes"]
 
+    if "creuss_gets_wormhole" in args and args["creuss_gets_wormhole"].value == "true":
+        cmd += ["--creuss_gets_wormhole", "1"]
+    elif args["creuss_gets_wormhole"].value == "false":
+        cmd += ["--creuss_gets_wormhole", "0"]
+
+    if "muaat_gets_supernova" in args and args["muaat_gets_supernova"].value == "true":
+        cmd += ["--muaat_gets_supernova", "1"]
+    elif args["muaat_gets_supernova"].value == "false":
+        cmd += ["--muaat_gets_supernova", "0"]
+
+    if "winnu_clear_path_to_mecatol" in args and args["winnu_clear_path_to_mecatol"].value == "true":
+        cmd += ["--winnu_have_clear_path_to_mecatol", "1"]
+    elif args["winnu_clear_path_to_mecatol"].value == "false":
+        cmd += ["--winnu_have_clear_path_to_mecatol", "0"]
+
     p = subprocess.Popen(cmd,
         stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     p.wait()

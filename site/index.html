@@ -20,14 +20,20 @@
 		</select>
 		<br>
 
-		<input type="radio" id="race_selection_method" name="race_selection_method" value="dummy" checked> Blank Home Systems
-		<input type="radio" id="race_selection_method" name="race_selection_method" value="random"> Random Races
-		<input type="radio" id="race_selection_method" name="race_selection_method" value="chosen"> Select Races<br>
+		<label><input type="radio" id="race_selection_method" name="race_selection_method" value="dummy" checked> Blank Home Systems</label>
+		<label><input type="radio" id="race_selection_method" name="race_selection_method" value="random"> Random Races</label>
+		<label><input type="radio" id="race_selection_method" name="race_selection_method" value="chosen"> Select Races</label><br>
 		<div id="race_select_div"></div>
 
 		Display in:
-		<input type="radio" id="bw" name="bw" value="false" checked>Colour
-		<input type="radio" id="bw" name="bw" value="true"> Black and White<br>
+		<label><input type="radio" id="bw" name="bw" value="false" checked>Colour</label>
+		<label><input type="radio" id="bw" name="bw" value="true"> Black and White</label><br>
+
+		Optimization Settings:<br>
+		<label><input type="CHECKBOX" id="creuss_gets_wormhole" name="creuss_gets_wormhole" checked>Give the Ghosts of Creuss a Wormhole</label><br>
+		<label><input type="CHECKBOX" id="muaat_gets_supernova" name="muaat_gets_supernova" checked>Give the Embers of Muaat a Supernova</label><br>
+		<label><input type="CHECKBOX" id="winnu_clear_path_to_mecatol" name="winnu_clear_path_to_mecatol" checked>Make sure the Winnu have a clear path to Mecatol Rex</label><br>
+
 
 		<input type="submit" value="Generate">
 	</form>
@@ -119,7 +125,10 @@
 						bw: $("#bw:checked").val(),
 						race_selection_method: $("#race_selection_method:checked").val(),
 						n_players: $("#n_players").val(),
-						races: get_selected_races()
+						races: get_selected_races(),
+						creuss_gets_wormhole: $("#creuss_gets_wormhole").prop("checked"),
+						muaat_gets_supernova: $("#muaat_gets_supernova").prop("checked"),
+						winnu_clear_path_to_mecatol: $("#winnu_clear_path_to_mecatol").prop("checked")
 					});
 				get.done(function(data) {
 					$("#galaxy_image_div").html(data);
