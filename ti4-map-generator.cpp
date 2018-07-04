@@ -952,6 +952,7 @@ int main(int argc, char *argv[]) {
             ("t,tiles", "json file defining tile properites", cxxopts::value<std::string>())
             ("o,output", "galaxy json output filename", cxxopts::value<std::string>())
             ("p,players", "number of players", cxxopts::value<int>()->default_value("6"))
+            ("s,seed", "random seed", cxxopts::value<int>())
             ("dummy_homes", "use blank home systems (default)")
             ("random_homes", "use random race home systems")
             ("choose_homes", "use with --races option")
@@ -976,7 +977,11 @@ int main(int argc, char *argv[]) {
         exit(-1);
     }
 
-    srand(time(NULL));
+    if (not result.count("seed")) {
+        srand(time(NULL));
+    } else {
+        srand(result["seed"].as<int>());
+    }
 
     HomeSystemSetups hss = DUMMY;
     string races;
