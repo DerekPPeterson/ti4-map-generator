@@ -261,6 +261,7 @@ class Galaxy
     void initialize_grid(int n);
     void place_tile(Location location, Tile*);
     void swap_tiles(Tile *, Tile *);
+    int count_adjacent_anomalies();
     Tile* get_tile_at(Location location);
     list<Tile*> get_adjacent(Tile* t1);
     map<Tile*, float> distance_to_other_tiles(Tile* t1);
@@ -766,6 +767,21 @@ void Galaxy::print_distances_from(int tile_num)
     }
 }
 
+int Galaxy::count_adjacent_anomalies()
+{
+    int count = 0;
+    for (auto t : movable_systems) {
+        if (t->get_anomaly()) {
+            for (auto a : get_adjacent(t)) {
+                if (a->get_anomaly()) {
+                    count++;
+                }
+            }
+        }
+    }
+    return count;
+}
+
 float Galaxy::evaluate_grid() {
     
     double_tile_map distances_from_home_systems;
@@ -784,6 +800,8 @@ float Galaxy::evaluate_grid() {
   
    
     float score = 0;
+
+    score += count_adjacent_anomalies();
 
     // Some race specific options if requested. the large score penalty ensures
     // that these will be satisfied if possible
