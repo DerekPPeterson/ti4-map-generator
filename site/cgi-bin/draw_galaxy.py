@@ -4,7 +4,7 @@ import os
 
 TILE_IMAGES = {}
 TILE_DIR = "../res"
-TILE_IMAGE_X = 200
+TILE_IMAGE_X = 198
 TILE_IMAGE_Y = 172
 FONT_PATH = "../res/Slider Regular.ttf"
 BW = False
