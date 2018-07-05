@@ -493,15 +493,14 @@ void Galaxy::initialize_grid(int n_players, string mandatory_tile_numbers) {
         i++;
     }
 
-    // Shuffle tiles always including mandatory tiles
+    // Shuffle tiles always including mandatory tiles first
     list<Tile*> random_tiles;
-    random_tiles = get_tile_pointers(movable_systems, mandatory_tile_numbers);
-    for (auto s : movable_systems) {
+    random_tiles = get_shuffled_list(get_tile_pointers(movable_systems, mandatory_tile_numbers));
+    for (auto s : get_shuffled_list(movable_systems)) {
         if (find(random_tiles.begin(), random_tiles.end(), s) == random_tiles.end()) {
             random_tiles.push_back(s);
         }
     }
-    random_tiles = get_shuffled_list(random_tiles);
 
     for (auto s : movable_systems) {
         printf("included tile - %d\n", s->get_number());
@@ -511,9 +510,9 @@ void Galaxy::initialize_grid(int n_players, string mandatory_tile_numbers) {
     for (int i = 0; i < 7;i++) {
         for (int j = 0; j < 7; j++) {
             if (not grid[i][j]) {
-                place_tile({i, j}, random_tiles.back());
-                movable_systems.push_back(random_tiles.back());
-                random_tiles.pop_back();
+                place_tile({i, j}, random_tiles.front());
+                movable_systems.push_back(random_tiles.front());
+                random_tiles.pop_front();
             }
         }
     }

@@ -43,8 +43,9 @@
 
 			<label><input type="CHECKBOX" id="creuss_gets_wormhole" name="creuss_gets_wormhole" checked>Give the Ghosts of Creuss a Wormhole</label><br>
 			<label><input type="CHECKBOX" id="muaat_gets_supernova" name="muaat_gets_supernova" checked>Give the Embers of Muaat a Supernova</label><br>
-			<label><input type="CHECKBOX" id="winnu_clear_path_to_mecatol" name="winnu_clear_path_to_mecatol" checked>Make sure the Winnu have a clear path to Mecatol Rex</label><br>
+			<label><input type="CHECKBOX" id="winnu_clear_path_to_mecatol" name="winnu_clear_path_to_mecatol" checked>Make sure the Winnu have a clear path to Mecatol Rex</label><br><br>
 
+			<label><input type="CHECKBOX" id="include_all_wormholes" name="include_all_wormholes" checked>Include all wormholes</label><br>
 
 			<h3><input type="submit" value="Generate"></h3>
 		</form>
@@ -141,6 +142,7 @@
 						creuss_gets_wormhole: $("#creuss_gets_wormhole").prop("checked"),
 						muaat_gets_supernova: $("#muaat_gets_supernova").prop("checked"),
 						winnu_clear_path_to_mecatol: $("#winnu_clear_path_to_mecatol").prop("checked"),
+						include_all_wormholes: $("#include_all_wormholes").prop("checked"),
 						resource_weight: $("#resource_weight").val(),
 						influence_weight: $("#influence_weight").val(),
 						tech_weight: $("#tech_weight").val(),

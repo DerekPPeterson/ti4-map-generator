@@ -68,6 +68,9 @@ def generate_galaxy(args):
     elif args["winnu_clear_path_to_mecatol"].value == "false":
         cmd += ["--winnu_have_clear_path_to_mecatol", "0"]
 
+    if "include_all_wormholes" in args and args["include_all_wormholes"].value == "true":
+        cmd += ["--mandatory_tiles", "25 26 39 40"]
+
     if "resource_weight" in args:
         cmd += ["--resource_weight", str(float(args["resource_weight"].value))]
     if "influence_weight" in args:
