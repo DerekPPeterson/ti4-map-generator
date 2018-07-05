@@ -22,8 +22,14 @@ def remove_other_chars(s, allowed):
 
 def generate_galaxy(args):
 
-    if "bw" in args and args["bw"].value == "true":
-        draw_galaxy.BW = True
+    if "display_type" in args:
+        if args["display_type"].value == "tile_images_with_numbers":
+            draw_galaxy.DISPLAY_TYPE = draw_galaxy.DisplayType.TileImagesWithNumbers
+        elif args["display_type"].value == "tile_images_only":
+            draw_galaxy.DISPLAY_TYPE = draw_galaxy.DisplayType.TileImagesOnly
+        elif args["display_type"].value == "numbers_only":
+            draw_galaxy.DISPLAY_TYPE = draw_galaxy.DisplayType.NumbersOnly
+
     n_players = 6
     if "n_players" in args:
         n_players = int(args["n_players"].value)

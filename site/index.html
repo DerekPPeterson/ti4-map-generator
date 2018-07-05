@@ -28,8 +28,9 @@
 			<div id="race_select_div"></div>
 
 			<h3>Display</h3>
-			<label><input type="radio" id="bw" name="bw" value="false" checked>Tile Images</label>
-			<label><input type="radio" id="bw" name="bw" value="true">Tile Numbers Only</label>
+			<label><input type="radio" id="display_type" name="display_type" value="tile_images_with_numbers" checked>Tile Images With Numbers</label>
+			<label><input type="radio" id="display_type" name="display_type" value="tile_images_only" >Tile Images Only</label>
+			<label><input type="radio" id="display_type" name="display_type" value="numbers_only">Tile Numbers Only</label>
 
 			<h3>Optimization Settings</h3>
 			<label title="Set random seed. The same setting with the same random seed will generate an identical map layout. Leave blank for an automatic random seed">Random Seed:<input type="number" id="seed"></label><br><br>
@@ -135,7 +136,7 @@
 
 				var get = $.get("./cgi-bin/ti4-map-generator-cgi.py", 
 					{
-						bw: $("#bw:checked").val(),
+						display_type: $("#display_type:checked").val(),
 						race_selection_method: $("#race_selection_method:checked").val(),
 						n_players: $("#n_players").val(),
 						races: get_selected_races(),

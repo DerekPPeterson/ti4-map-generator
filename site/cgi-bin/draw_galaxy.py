@@ -1,13 +1,20 @@
 from PIL import Image, ImageFont, ImageDraw
 import json
 import os
+from enum import Enum
+
+class DisplayType(Enum):
+    TileImagesWithNumbers = 1
+    TileImagesOnly = 2
+    NumbersOnly = 3
+
 
 TILE_IMAGES = {}
 TILE_DIR = "../res"
 TILE_IMAGE_X = 198
 TILE_IMAGE_Y = 172
 FONT_PATH = "../res/Slider Regular.ttf"
-BW = False
+DISPLAY_TYPE = DisplayType.TileImagesWithNumbers
 
 
 def get_tile_image(number):
@@ -19,7 +26,7 @@ def get_tile_image(number):
     except KeyError:
         pass
 
-    if (BW):
+    if (DISPLAY_TYPE == DisplayType.NumbersOnly):
         number = 0
         image_filename = os.path.join(TILE_DIR, "small-tilebw.png")
     elif (number < 0):
@@ -44,7 +51,7 @@ def calc_coordinates(i, j, n_row_offset):
 
 def calc_text_coords(i, j, n_row_offset):
     coords = calc_coordinates(i, j, n_row_offset)
-    if BW:
+    if DISPLAY_TYPE == DisplayType.NumbersOnly:
         return (coords[0] + int(TILE_IMAGE_X / 3.5),
                 coords[1] + TILE_IMAGE_Y / 3)
     else:
@@ -69,19 +76,20 @@ def create_galaxy_image_from_grid(grid):
             coords = calc_coordinates(i, j, 3)
             text_coords = calc_text_coords(i, j, 3)
             output.paste(tile_image, coords, tile_image)
-            if BW:
+            if DISPLAY_TYPE == DisplayType.NumbersOnly:
                 text_color = (0, 0, 0, 255)
             else:
                 text_color = (255, 255, 255, 255)
 
             if grid[i][j] > 0:
                 outline_thickness = 2
-                if not BW:
+                if DISPLAY_TYPE == DisplayType.TileImagesWithNumbers:
                     d.text((text_coords[0] - outline_thickness, text_coords[1] + outline_thickness), str(grid[i][j]), font=font, fill=(0, 0, 0, 100))
                     d.text((text_coords[0] - outline_thickness, text_coords[1] - outline_thickness), str(grid[i][j]), font=font, fill=(0, 0, 0, 100))
                     d.text((text_coords[0] + outline_thickness, text_coords[1] + outline_thickness), str(grid[i][j]), font=font, fill=(0, 0, 0, 100))
                     d.text((text_coords[0] + outline_thickness, text_coords[1] - outline_thickness), str(grid[i][j]), font=font, fill=(0, 0, 0, 100))
-                d.text(text_coords, str(grid[i][j]), font=font, fill=text_color)
+                if DISPLAY_TYPE != DisplayType.TileImagesOnly:
+                    d.text(text_coords, str(grid[i][j]), font=font, fill=text_color)
             #d.text(text_coords, "{},{}".format(i, j), font=font, fill=text_color)
 
     output = Image.alpha_composite(output, txt)
