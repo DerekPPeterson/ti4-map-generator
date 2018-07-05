@@ -4,8 +4,8 @@ import os
 
 TILE_IMAGES = {}
 TILE_DIR = "../res"
-TILE_IMAGE_X = 900
-TILE_IMAGE_Y = 774
+TILE_IMAGE_X = 200
+TILE_IMAGE_Y = 172
 FONT_PATH = "../res/Slider Regular.ttf"
 BW = False
 
@@ -21,11 +21,11 @@ def get_tile_image(number):
 
     if (BW):
         number = 0
-        image_filename = os.path.join(TILE_DIR, "tilebw.png")
+        image_filename = os.path.join(TILE_DIR, "small-tilebw.png")
     elif (number < 0):
-        image_filename = os.path.join(TILE_DIR, "tilehome.png")
+        image_filename = os.path.join(TILE_DIR, "small-tilehome.png")
     else:
-        image_filename = os.path.join(TILE_DIR, "tile%d.png" % number)
+        image_filename = os.path.join(TILE_DIR, "small-tile%d.png" % number)
 
     try:
         TILE_IMAGES[number] = Image.open(image_filename)
@@ -52,7 +52,6 @@ def calc_text_coords(i, j, n_row_offset):
                 coords[1] + TILE_IMAGE_Y / 3)
 
 
-
 def create_galaxy_image_from_grid(grid):
     output = Image.new('RGBA',
                        (int(TILE_IMAGE_X * (6 * 0.75 + 1)), TILE_IMAGE_Y * 7),
@@ -76,6 +75,12 @@ def create_galaxy_image_from_grid(grid):
                 text_color = (255, 255, 255, 255)
 
             if grid[i][j] > 0:
+                outline_thickness = 2
+                if not BW:
+                    d.text((text_coords[0] - outline_thickness, text_coords[1] + outline_thickness), str(grid[i][j]), font=font, fill=(0, 0, 0, 100))
+                    d.text((text_coords[0] - outline_thickness, text_coords[1] - outline_thickness), str(grid[i][j]), font=font, fill=(0, 0, 0, 100))
+                    d.text((text_coords[0] + outline_thickness, text_coords[1] + outline_thickness), str(grid[i][j]), font=font, fill=(0, 0, 0, 100))
+                    d.text((text_coords[0] + outline_thickness, text_coords[1] - outline_thickness), str(grid[i][j]), font=font, fill=(0, 0, 0, 100))
                 d.text(text_coords, str(grid[i][j]), font=font, fill=text_color)
             #d.text(text_coords, "{},{}".format(i, j), font=font, fill=text_color)
 
@@ -87,7 +92,9 @@ def create_galaxy_image(galaxy_json_filename, output_filename, box=(900, 900)):
     json_file = open(galaxy_json_filename)
     galaxy = json.load(json_file)
     image = create_galaxy_image_from_grid(galaxy["grid"])
-    image.resize(box, Image.BICUBIC).save(output_filename, "PNG")
+    image = image.resize(box, Image.BICUBIC)
+    image = image.crop(image.getbbox())
+    image.save(output_filename, "PNG")
 
 
 if __name__ == "__main__":

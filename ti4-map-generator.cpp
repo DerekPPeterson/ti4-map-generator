@@ -38,7 +38,7 @@ static map<string, PlanetTrait> trait_key = {
 
 enum TechColor
 {
-    NO_COLOR,
+    NO_TECH,
     BLUE,
     RED,
     GREEN,
@@ -46,7 +46,7 @@ enum TechColor
 };
 
 static map<string, TechColor> tech_key = {
-    {"NO_TECH", NO_COLOR},
+    {"NO_TECH", NO_TECH},
     {"BLUE", BLUE},
     {"RED", RED},
     {"GREEN", GREEN},
@@ -132,6 +132,7 @@ class Tile
     int get_number();
     Wormhole get_wormhole();
     Anomaly get_anomaly();
+    TechColor get_techcolor();
     void set_location(Location);
     Location get_location();
     int get_resource_value();
@@ -155,6 +156,15 @@ int Tile::get_number() {
 
 Anomaly Tile::get_anomaly() {
     return anomaly;
+}
+
+TechColor Tile::get_techcolor() {
+   for (auto p : planets) {
+       if (p.tech) {
+           return p.tech;
+       }
+   }
+   return NO_TECH;
 }
 
 Wormhole Tile::get_wormhole() {
@@ -242,6 +252,7 @@ class Galaxy
     list<Tile*> movable_systems;
     map<Wormhole, list<Tile*>> wormhole_systems;
     Tile boundary_tile; // used for inaccesable locations in the grid
+    map<string, float> evaluate_options;
 
     void import_tiles(string tile_filename);
     void random_home_tiles(int n);
@@ -253,13 +264,19 @@ class Galaxy
     Tile* get_tile_at(Location location);
     list<Tile*> get_adjacent(Tile* t1);
     map<Tile*, float> distance_to_other_tiles(Tile* t1);
-    void visit_all(Tile* t1, map<Tile*, float>& visited, float distance);
     double_tile_map calculate_stakes(double_tile_map distances);
     vector<pair<Tile*, Tile*>> make_swap_list();
+    bool is_wormhole_near_creuss(int near_dist, double_tile_map distances);
+    bool is_supernova_near_muaat(int near_dist, double_tile_map distances);
+    bool winnu_have_clear_path_to_mecatol(double_tile_map distances);
+
 
     public:
-    Galaxy(string tile_filename, int n_players, HomeSystemSetups, string home_tile_ids);
+    Galaxy(string tile_filename, int n_players, HomeSystemSetups, 
+            string home_tile_ids);
     void print_grid();
+    void print_distances_from(int);
+    void set_evaluate_option(string name, float val);
     float evaluate_grid();
     void optimize_grid();
     void write_json(string filename);
@@ -454,7 +471,7 @@ void Galaxy::initialize_grid(int n_players) {
     // Place Mecatol at centre of galaxy
     place_tile({3, 3}, mecatol);
 
-    // Place home systems // TODO for other counts than 6p
+    // Place home systems // TODO for custom shapes
     vector<Location> start_positions;
     switch (n_players) {
         case 3: {vector<Location> tmp = {{0,0},{3,6},{6,3}}; start_positions = tmp; break;}
@@ -463,7 +480,7 @@ void Galaxy::initialize_grid(int n_players) {
         case 6: {vector<Location> tmp = {{0,0},{0,3},{3,6},{6,6},{6,3},{3,0}}; start_positions = tmp; break;}
     }
     int i = 0;
-    for (auto it : home_systems) {
+    for (auto it : get_shuffled_list(home_systems)) {
         place_tile(start_positions[i], it);
         i++;
     }
@@ -546,45 +563,48 @@ list<Tile*> Galaxy::get_adjacent(Tile *t1)
     return adjacent;
 };
 
-
-void Galaxy::visit_all(Tile* t, map<Tile*, float>& visited, float distance)
-{
-    if (distance > 10) {
-        return;
-    }
-   //cout << "distance " << distance << " at " << t << " " << t->get_description_string() << endl;
-    
-    float move_cost;
-    // TODO: configure these?
-    switch (t->get_anomaly()) {
-        case NEBULA: move_cost = 2;
-                     break;
-        case ASTEROID_FIELD: move_cost = 1.5;
-        case SUPERNOVA: return; // can't go through supernovas
-        case GRAVITY_RIFT: move_cost = 1;
-        default : move_cost = 1;
-    }
-
-    // don't travel through other home systems either
-    if (t->is_home_system() and distance > 0) {
-        return;
-    }
-
-    // If we didn't already visit, or our trip was shorter record distance and keep going
-    if ((not visited.count(t)) or visited[t] > distance) {
-        visited[t] = distance;
-        //for(auto adjacent : get_adjacent(t)) {
-        //    cout << " Will visit " << adjacent->get_description_string() << endl;
-        //}
-        for(auto adjacent : get_adjacent(t)) {
-            visit_all(adjacent, visited, distance + move_cost);
-        }
-    }
-}
+struct VisitInfo {
+    Tile* tile;
+    float distance_to;
+};
 
 map<Tile*, float> Galaxy::distance_to_other_tiles(Tile* t1) {
     map<Tile*, float> visited;
-    visit_all(t1, visited, 0);
+
+    list<VisitInfo> to_visit;
+    to_visit.push_back({t1, 0});
+
+    while (to_visit.size()) {
+        auto cur_tile = to_visit.front().tile;
+        auto distance = to_visit.front().distance_to;
+        to_visit.pop_front();
+
+        // Skip home systems that are not the start system
+        if (cur_tile->is_home_system() and distance > 0) {
+            continue;
+        }
+
+        // If we didn't already visit the current tile or we got here via a
+        // shorter distance, record the new distance and keep going
+        if ((not visited.count(cur_tile)) or visited[cur_tile] > distance) {
+            visited[cur_tile] = distance;
+
+            // TODO: configure these?
+            float move_cost;
+            switch (cur_tile->get_anomaly()) {
+                case NEBULA: move_cost = 2; break;
+                case ASTEROID_FIELD: move_cost = 1.5; break;
+                case SUPERNOVA: continue;
+                case GRAVITY_RIFT: move_cost = 1; break; 
+                default : move_cost = 1;
+            }
+
+            for (auto adjacent : get_adjacent(cur_tile)) {
+                to_visit.push_back({adjacent, distance + move_cost});
+            }
+        }
+    }
+    
     return visited;
 }
 
@@ -621,6 +641,7 @@ typedef struct Scores
 {
     map<Tile*, float> resource_share;
     map<Tile*, float> influence_share;
+    map<Tile*, float> tech_share;
 } Scores;
 
 float average(list<float> l) 
@@ -641,11 +662,113 @@ float coefficient_of_variation(list<float> l) {
     return sum / l.size() / avg;
 }
 
+/* Returns true if there exists a supernova tile with a distance to the muaat
+ * home system less than or equal to near_dist
+ */
+bool Galaxy::is_supernova_near_muaat(int near_dist, double_tile_map distances)
+{
+    // Check to see if muaat is in this game
+    int muaat_tile_number = 4;
+    Tile* muaat_home_tile = NULL;
+    for (auto hs : home_systems) {
+        if (hs->get_number() == muaat_tile_number) {
+            muaat_home_tile = hs;
+        }
+    }
+    // No penalty if muaat are not in this game
+    if (not muaat_home_tile) {
+        return 0;
+    }
+
+    for (auto t : movable_systems) {
+        if (t->get_anomaly() == SUPERNOVA) {
+            if (distances[muaat_home_tile][t] <= near_dist) {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
+/* Returns true if there exists a wormhole tile with a distane to the creuss
+ * home system less than or equal to near_dist
+ */
+bool Galaxy::winnu_have_clear_path_to_mecatol(double_tile_map distances)
+{
+    // Check to see if Winnu is in this game
+    int winnu_tile_number = 7;
+    Tile* winnu_home_tile = NULL;
+    for (auto hs : home_systems) {
+        if (hs->get_number() == winnu_tile_number) {
+            winnu_home_tile = hs;
+        }
+    }
+    // No penalty if winnu are not in this game
+    if (not winnu_home_tile) {
+        return 0;
+    }
+
+    // TODO needs to change for non-standard board shapes if they ever get supported
+    if (distances[winnu_home_tile][mecatol] <= 3) {
+        return true;
+    }
+    return false;
+}
+
+/* Returns true if there is a clear path for winnu to mecatol
+ */
+bool Galaxy::is_wormhole_near_creuss(int near_dist, double_tile_map distances)
+{
+    // Check to see if winnu is in this game
+    int creuss_tile_number = 17;
+    Tile* creuss_home_tile = NULL;
+    for (auto hs : home_systems) {
+        if (hs->get_number() == creuss_tile_number) {
+            creuss_home_tile = hs;
+        }
+    }
+    // No penalty if creuss are not in this game
+    if (not creuss_home_tile) {
+        return 0;
+    }
+
+    for (auto t : movable_systems) {
+        if (t->get_wormhole() and t->get_wormhole() != DELTA) {
+            if (distances[creuss_home_tile][t] <= near_dist) {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
+void Galaxy::set_evaluate_option(string name, float val)
+{
+    evaluate_options[name] = val;
+}
+
+void Galaxy::print_distances_from(int tile_num)
+{
+    Tile* home_tile = NULL;
+    for (auto hs : home_systems) {
+        if (hs->get_number() == tile_num) {
+            home_tile = hs;
+        }
+    }
+    if (not home_tile) {
+        cout << "TIle not found" << endl;
+    }
+
+    map<Tile*, float> dists = distance_to_other_tiles(home_tile);
+    cout << "Distance from tile " << home_tile->get_number() << " to tile:" << endl;
+    for (auto dist : dists) {
+        cout << "\t" << dist.first->get_number() << " " << dist.second << endl;
+    }
+}
 
 float Galaxy::evaluate_grid() {
-    float score = 0;
     
-    map<Tile*, map<Tile*, float>> distances_from_home_systems;
+    double_tile_map distances_from_home_systems;
 
     for (auto home_system : home_systems) {
         distances_from_home_systems[home_system] = distance_to_other_tiles(home_system);
@@ -658,6 +781,29 @@ float Galaxy::evaluate_grid() {
     //        cout << "\t" << it2.second << " " << it2.first->get_description_string() << endl;
     //    }
     //}
+  
+   
+    float score = 0;
+
+    // Some race specific options if requested. the large score penalty ensures
+    // that these will be satisfied if possible
+    if (evaluate_options["muaat_gets_supernova"]) {
+        if (not is_supernova_near_muaat(evaluate_options["muaat_gets_supernova"], 
+                    distances_from_home_systems)) {
+            score += 10;
+        }
+    }
+    if (evaluate_options["creuss_gets_wormhole"]) {
+        if (not is_wormhole_near_creuss(evaluate_options["creuss_gets_wormhole"], 
+                    distances_from_home_systems)) {
+            score += 10;
+        }
+    }
+    if (evaluate_options["winnu_have_clear_path_to_mecatol"]) {
+        if (not winnu_have_clear_path_to_mecatol( distances_from_home_systems)) {
+            score += 10;
+        }
+    }
 
     Scores scores;
 
@@ -665,19 +811,24 @@ float Galaxy::evaluate_grid() {
     float total_influence = 0;
     list<float> resource_shares;
     list<float> influence_shares;
-    list<float> combined_shares;;
+    list<float> combined_shares;
+    list<float> tech_shares;
     for (auto home_system : home_systems) {
         float resource_share = 0;
         float influence_share = 0;
+        float tech_share = 0;
         for (auto tile : movable_systems) {
             resource_share += tile->get_resource_value() * stakes[tile][home_system];
             influence_share += tile->get_influence_value() * stakes[tile][home_system];
+            tech_share += tile->get_techcolor() ? stakes[tile][home_system] : 0;
         }
         scores.resource_share[home_system] = resource_share;
         scores.influence_share[home_system] = influence_share;
+        scores.tech_share[home_system] = tech_share;
 
         resource_shares.push_back(resource_share);
         influence_shares.push_back(influence_share);
+        tech_shares.push_back(tech_share);
         combined_shares.push_back(resource_share + influence_share);
 
         total_resources += resource_share;
@@ -689,10 +840,16 @@ float Galaxy::evaluate_grid() {
     //            hs->get_description_string().c_str());
     //}
     //printf("%2.1f %2.1f %s\n", total_resources, total_influence, "Totals");
-    //printf("%0.3f %0.3f %s\n", coefficient_of_variation(resource_shares), 
-    //        coefficient_of_variation(influence_shares), "CVs");
+    //printf("%0.3f %0.3f %03f %s\n", coefficient_of_variation(resource_shares), 
+    //        coefficient_of_variation(influence_shares), 
+    //        coefficient_of_variation(tech_shares), 
+    //        "CVs");
+    
+    score += coefficient_of_variation(resource_shares) * evaluate_options["resource_weight"]
+           + coefficient_of_variation(influence_shares) * evaluate_options["influence_weight"]
+           + coefficient_of_variation(tech_shares) * evaluate_options["tech_weight"];
 
-    return coefficient_of_variation(resource_shares) + coefficient_of_variation(influence_shares);
+    return score;
 }
 
 void Galaxy::swap_tiles(Tile* a, Tile* b)
@@ -704,6 +861,8 @@ void Galaxy::swap_tiles(Tile* a, Tile* b)
     place_tile(b_start, a);
 }
 
+/* Returns every possible combination of swappable tiles
+ */
 vector<pair<Tile*, Tile*>> Galaxy::make_swap_list()
 {
     vector<pair<Tile*, Tile*>> swap_list;
@@ -718,15 +877,21 @@ vector<pair<Tile*, Tile*>> Galaxy::make_swap_list()
     return swap_list;
 }
 
+/* optimize_grid
+ * Swaps tiles to maximize the score of the current grid until no more swaps 
+ * can be made. The score is defined by evaluate_grid
+ */
 void Galaxy::optimize_grid()
 {
     float current_score = evaluate_grid();
     bool better_score_found = 0;
 
     int n_swaps = 0;
-    int swaps_until_quit = 100;
+    // Set to a very high value to test all swaps
+    int swaps_until_quit = 100000;
 
     do {
+        better_score_found = false;
         auto swaps = make_swap_list();
 
         n_swaps = 0;
@@ -737,8 +902,8 @@ void Galaxy::optimize_grid()
                 better_score_found = true;
                 current_score = new_score;
                 printf("Swapping tiles %d & %d, new_score: %0.3f\n", 
-                        swap.first->get_number(), swap.second->get_number(), current_score);
-                //print_grid();
+                        swap.first->get_number(), swap.second->get_number(), 
+                        current_score);
                 break;
             } else {
                 swap_tiles(swap.first, swap.second);
@@ -774,14 +939,21 @@ int main(int argc, char *argv[]) {
 
     cxxopts::Options options("ti4-map-generator", "Generate balanced TI4 maps");
     options.add_options()
+            ("h,help", "Print help")
             ("t,tiles", "json file defining tile properites", cxxopts::value<std::string>())
             ("o,output", "galaxy json output filename", cxxopts::value<std::string>())
             ("p,players", "number of players", cxxopts::value<int>()->default_value("6"))
+            ("s,seed", "random seed", cxxopts::value<int>())
             ("dummy_homes", "use blank home systems (default)")
             ("random_homes", "use random race home systems")
             ("choose_homes", "use with --races option")
             ("r,races", "list of home system tile numbers like so \"1 2 5...\"", cxxopts::value<string>()->default_value("6"))
-            ("h,help", "Print help")
+            ("creuss_gets_wormhole", "If creuss in game place a wormhole within x distance of it", cxxopts::value<int>()->default_value("1"))
+            ("muaat_gets_supernova", "If muaat in game place the supernova within x distance of it", cxxopts::value<int>()->default_value("1"))
+            ("winnu_have_clear_path_to_mecatol", "If winnu in game give them a clear path to mecatol", cxxopts::value<int>()->default_value("1"))
+            ("resource_weight", "Relative weight of resource variance", cxxopts::value<float>()->default_value("1.0"))
+            ("influence_weight", "Relative weight of infuence variance", cxxopts::value<float>()->default_value("1.0"))
+            ("tech_weight", "Relative weight of tech specialty variance", cxxopts::value<float>()->default_value("1.0"))
             ;
     auto result = options.parse(argc, argv);
 
@@ -796,7 +968,11 @@ int main(int argc, char *argv[]) {
         exit(-1);
     }
 
-    srand(time(NULL));
+    if (not result.count("seed")) {
+        srand(time(NULL));
+    } else {
+        srand(result["seed"].as<int>());
+    }
 
     HomeSystemSetups hss = DUMMY;
     string races;
@@ -816,12 +992,20 @@ int main(int argc, char *argv[]) {
     Galaxy galaxy(result["tiles"].as<string>(), result["players"].as<int>(), hss, races);
     float score = galaxy.evaluate_grid();
     cout << "Score: " << score << endl;
+
+    galaxy.set_evaluate_option("creuss_gets_wormhole", result["creuss_gets_wormhole"].as<int>());
+    galaxy.set_evaluate_option("muaat_gets_supernova", result["muaat_gets_supernova"].as<int>());
+    galaxy.set_evaluate_option("winnu_have_clear_path_to_mecatol", result["winnu_have_clear_path_to_mecatol"].as<int>());
+
+    galaxy.set_evaluate_option("resource_weight", result["resource_weight"].as<float>());
+    galaxy.set_evaluate_option("influence_weight", result["influence_weight"].as<float>());
+    galaxy.set_evaluate_option("tech_weight", result["tech_weight"].as<float>());
+
     galaxy.optimize_grid();
     score = galaxy.evaluate_grid();
     cout << "Score: " << score << endl;
     galaxy.print_grid();
     galaxy.write_json(result["output"].as<string>());
-
 
     return 0;
 }

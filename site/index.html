@@ -2,37 +2,55 @@
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/> 
 <html>
 <head>
+	<title>TI4 Balanced Map Generator</title>
 	<link rel="stylesheet" type="text/css" href="./res/style.css">
 	<link rel="icon" type="image/png" href="res/favicon.png">
-	<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
-	<script src="http://malsup.github.com/jquery.form.js"></script> 
+	<script src="./res/jquery.min.js"></script>
 </head>
 
 <body>
 	<h1>TWILIGHT IMPERIUM IV BALANCED MAP GENERATOR</h1>
-	<form id="generate_form" action="./cgi-bin/ti4-map-generator-cgi.py">
-		Number of Players:
-		<select id="n_players" name="n_players">
-			<option value=6>6</option>
-			<option value=5>5</option>
-			<option value=4>4</option>
-			<option value=3>3</option>
-		</select>
-		<br>
+	<div id="text_div" style="float:left">
+		<form id="generate_form" action="./cgi-bin/ti4-map-generator-cgi.py">
+			<h3>Player Settings</h3>
+			<label>Number of Players:
+			<select id="n_players" name="n_players">
+				<option value=6>6</option>
+				<option value=5>5</option>
+				<option value=4>4</option>
+				<option value=3>3</option>
+			</select></label>
+			<br>
 
-		<input type="radio" id="race_selection_method" name="race_selection_method" value="dummy" checked> Blank Home Systems
-		<input type="radio" id="race_selection_method" name="race_selection_method" value="random"> Random Races
-		<input type="radio" id="race_selection_method" name="race_selection_method" value="chosen"> Select Races<br>
-		<div id="race_select_div"></div>
+			<label><input type="radio" id="race_selection_method" name="race_selection_method" value="dummy" checked> Blank Home Systems</label>
+			<label><input type="radio" id="race_selection_method" name="race_selection_method" value="random"> Random Races</label>
+			<label><input type="radio" id="race_selection_method" name="race_selection_method" value="chosen"> Select Races</label><br>
+			<div id="race_select_div"></div>
 
-		Display in:
-		<input type="radio" id="bw" name="bw" value="false" checked>Colour
-		<input type="radio" id="bw" name="bw" value="true"> Black and White<br>
+			<h3>Display</h3>
+			<label><input type="radio" id="bw" name="bw" value="false" checked>Tile Images</label>
+			<label><input type="radio" id="bw" name="bw" value="true">Tile Numbers Only</label>
 
-		<input type="submit" value="Generate">
-	</form>
+			<h3>Optimization Settings</h3>
+			<label>Random Seed:<input type="number" id="seed"></label><br><br>
+
+			<label style="width: 200px" for="resource_weight">Resource Weighting:</label>
+			<input type="range" min="0" max="5" step="0.1" value="1" class="slider" id="resource_weight"><br>
+			<label style="width: 200px"for="influence_weight">Influence Weighting:</label>
+			<input type="range" min="0" max="5" step="0.1" value="1" class="slider" id="influence_weight"><br>
+			<label style="width: 200px"for="tech_weight">Tech Specialty Weighting:</label>
+			<input type="range" min="0" max="5" step="0.1" value="1" class="slider" id="tech_weight"><br><br>
+
+			<label><input type="CHECKBOX" id="creuss_gets_wormhole" name="creuss_gets_wormhole" checked>Give the Ghosts of Creuss a Wormhole</label><br>
+			<label><input type="CHECKBOX" id="muaat_gets_supernova" name="muaat_gets_supernova" checked>Give the Embers of Muaat a Supernova</label><br>
+			<label><input type="CHECKBOX" id="winnu_clear_path_to_mecatol" name="winnu_clear_path_to_mecatol" checked>Make sure the Winnu have a clear path to Mecatol Rex</label><br>
+
+
+			<h3><input type="submit" value="Generate"></h3>
+		</form>
+	</div>
 			
-	<div id="galaxy_image_div"></div>
+	<div id="galaxy_image_div" style="float:left;"></div>
 
 	<script text/javascript>
 		$("#document").ready(function() {
@@ -119,7 +137,14 @@
 						bw: $("#bw:checked").val(),
 						race_selection_method: $("#race_selection_method:checked").val(),
 						n_players: $("#n_players").val(),
-						races: get_selected_races()
+						races: get_selected_races(),
+						creuss_gets_wormhole: $("#creuss_gets_wormhole").prop("checked"),
+						muaat_gets_supernova: $("#muaat_gets_supernova").prop("checked"),
+						winnu_clear_path_to_mecatol: $("#winnu_clear_path_to_mecatol").prop("checked"),
+						resource_weight: $("#resource_weight").val(),
+						influence_weight: $("#influence_weight").val(),
+						tech_weight: $("#tech_weight").val(),
+						seed: $("#seed").val()
 					});
 				get.done(function(data) {
 					$("#galaxy_image_div").html(data);
