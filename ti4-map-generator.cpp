@@ -250,6 +250,8 @@ class Galaxy
     Tile *mecatol;
     list<Tile*> home_systems;
     list<Tile*> movable_systems;
+    list<Tile*> red_tiles;
+    list<Tile*> blue_tiles;
     map<Wormhole, list<Tile*>> wormhole_systems;
     Tile boundary_tile; // used for inaccesable locations in the grid
     map<string, float> evaluate_options;
@@ -360,11 +362,20 @@ void Galaxy::import_tiles(string tile_filename)
     json_file.close();
 
     // Create list of tiles
-    json tile_list = tile_json["tiles"];
+    json tile_list = tile_json["red_tiles"];
     for (json::iterator it = tile_list.begin(); it != tile_list.end(); it++) {
         tiles.push_back(create_tile_from_json(it.value()));
         Tile *added_tile = &tiles.back();
-        movable_systems.push_back(added_tile);
+        red_tiles.push_back(added_tile);
+        if (added_tile->get_wormhole()) {
+            wormhole_systems[added_tile->get_wormhole()].push_back(added_tile);
+        }
+    }
+    tile_list = tile_json["blue_tiles"];
+    for (json::iterator it = tile_list.begin(); it != tile_list.end(); it++) {
+        tiles.push_back(create_tile_from_json(it.value()));
+        Tile *added_tile = &tiles.back();
+        blue_tiles.push_back(added_tile);
         if (added_tile->get_wormhole()) {
             wormhole_systems[added_tile->get_wormhole()].push_back(added_tile);
         }
@@ -454,6 +465,10 @@ list<t> get_shuffled_list(list<t> l) {
 }
 
 void Galaxy::initialize_grid(int n_players, string mandatory_tile_numbers) {
+    if (n_players < 3 or n_players > 6) {
+        throw invalid_argument("Must have between 3 and 6 players");
+    }
+
     for (int i = 0; i < 7;i++) {
         for (int j = 0; j < 7; j++) {
             place_tile({i, j}, NULL);
@@ -495,10 +510,51 @@ void Galaxy::initialize_grid(int n_players, string mandatory_tile_numbers) {
 
     // Shuffle tiles always including mandatory tiles first
     list<Tile*> random_tiles;
-    random_tiles = get_shuffled_list(get_tile_pointers(movable_systems, mandatory_tile_numbers));
-    for (auto s : get_shuffled_list(movable_systems)) {
+    int n_red, n_blue; // number of each colored tiles to include
+    switch (n_players) {
+        case 3:
+            n_blue = 3 * 6;
+            n_red = 3 * 2;
+            break;
+        case 4:
+            n_blue = 4 * 5;
+            n_red = 4 * 3;
+            break;
+        case 5:
+            n_blue = 4 * 5;
+            n_red = 2 * 5 + 1;
+            break;
+        case 6:
+            n_blue = 3 * 6;
+            n_red = 2 * 6;
+            break;
+    }
+    list<Tile*> tmp;
+    tmp = get_tile_pointers(blue_tiles, mandatory_tile_numbers);
+    n_blue -= tmp.size();
+    random_tiles = tmp;
+
+    tmp = get_tile_pointers(red_tiles, mandatory_tile_numbers);
+    n_red -= tmp.size();
+    random_tiles.insert(random_tiles.end(), tmp.begin(), tmp.end());
+
+    for (auto s : get_shuffled_list(blue_tiles)) {
         if (find(random_tiles.begin(), random_tiles.end(), s) == random_tiles.end()) {
             random_tiles.push_back(s);
+            n_blue--;
+            if (not n_blue) {
+                break;
+            }
+        }
+    }
+
+    for (auto s : get_shuffled_list(red_tiles)) {
+        if (find(random_tiles.begin(), random_tiles.end(), s) == random_tiles.end()) {
+            random_tiles.push_back(s);
+            n_red--;
+            if (not n_red) {
+                break;
+            }
         }
     }
 
@@ -506,6 +562,7 @@ void Galaxy::initialize_grid(int n_players, string mandatory_tile_numbers) {
         printf("included tile - %d\n", s->get_number());
     }
 
+    random_tiles = get_shuffled_list(random_tiles);
     movable_systems.clear();
     for (int i = 0; i < 7;i++) {
         for (int j = 0; j < 7; j++) {

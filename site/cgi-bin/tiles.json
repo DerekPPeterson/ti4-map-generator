@@ -14,7 +14,7 @@
 				}
 			]
 		},
-	"tiles": [
+	"blue_tiles": [
 		{
 			"number": 38,
 			"wormhole": "NO_WORMHOLE",
@@ -34,41 +34,6 @@
 					"trait": "HAZARDOUS",
 					"tech": "BLUE"
 				}
-			]
-		},
-		{
-			"number": 47,
-			"wormhole": "NO_WORMHOLE",
-			"anomaly": "EMPTY",
-			"planets": [
-			]
-		},
-		{
-			"number": 48,
-			"wormhole": "NO_WORMHOLE",
-			"anomaly": "EMPTY",
-			"planets": [
-			]
-		},
-		{
-			"number": 41,
-			"wormhole": "NO_WORMHOLE",
-			"anomaly": "GRAVITY_RIFT",
-			"planets": [
-			]
-		},
-		{
-			"number": 42,
-			"wormhole": "NO_WORMHOLE",
-			"anomaly": "NEBULA",
-			"planets": [
-			]
-		},
-		{
-			"number": 39,
-			"wormhole": "ALPHA",
-			"anomaly": "EMPTY",
-			"planets": [
 			]
 		},
 		{
@@ -205,13 +170,6 @@
 			]
 		},
 		{
-			"number": 44,
-			"wormhole": "NO_WORMHOLE",
-			"anomaly": "ASTEROID_FIELD",
-			"planets": [
-			]
-		},
-		{
 			"number": 32,
 			"wormhole": "NO_WORMHOLE",
 			"anomaly": "NO_ANOMALY",
@@ -230,13 +188,6 @@
 					"trait": "CULTURAL",
 					"tech": "NO_TECH"
 				}
-			]
-		},
-		{
-			"number": 50,
-			"wormhole": "NO_WORMHOLE",
-			"anomaly": "EMPTY",
-			"planets": [
 			]
 		},
 		{
@@ -303,27 +254,6 @@
 			]
 		},
 		{
-			"number": 43,
-			"wormhole": "NO_WORMHOLE",
-			"anomaly": "SUPERNOVA",
-			"planets": [
-			]
-		},
-		{
-			"number": 40,
-			"wormhole": "BETA",
-			"anomaly": "EMPTY",
-			"planets": [
-			]
-		},
-		{
-			"number": 46,
-			"wormhole": "NO_WORMHOLE",
-			"anomaly": "EMPTY",
-			"planets": [
-			]
-		},
-		{
 			"number": 20,
 			"wormhole": "NO_WORMHOLE",
 			"anomaly": "NO_ANOMALY",
@@ -373,13 +303,6 @@
 			]
 		},
 		{
-			"number": 45,
-			"wormhole": "NO_WORMHOLE",
-			"anomaly": "ASTEROID_FIELD",
-			"planets": [
-			]
-		},
-		{
 			"number": 26,
 			"wormhole": "ALPHA",
 			"anomaly": "NO_ANOMALY",
@@ -391,13 +314,6 @@
 					"trait": "CULTURAL",
 					"tech": "NO_TECH"
 				}
-			]
-		},
-		{
-			"number": 49,
-			"wormhole": "NO_WORMHOLE",
-			"anomaly": "EMPTY",
-			"planets": [
 			]
 		},
 		{
@@ -461,6 +377,92 @@
 					"trait": "HAZARDOUS",
 					"tech": "NO_TECH"
 				}
+			]
+		}
+	],
+	"red_tiles": [
+		{
+			"number": 45,
+			"wormhole": "NO_WORMHOLE",
+			"anomaly": "ASTEROID_FIELD",
+			"planets": [
+			]
+		},
+		{
+			"number": 49,
+			"wormhole": "NO_WORMHOLE",
+			"anomaly": "EMPTY",
+			"planets": [
+			]
+		},
+		{
+			"number": 43,
+			"wormhole": "NO_WORMHOLE",
+			"anomaly": "SUPERNOVA",
+			"planets": [
+			]
+		},
+		{
+			"number": 40,
+			"wormhole": "BETA",
+			"anomaly": "EMPTY",
+			"planets": [
+			]
+		},
+		{
+			"number": 46,
+			"wormhole": "NO_WORMHOLE",
+			"anomaly": "EMPTY",
+			"planets": [
+			]
+		},
+		{
+			"number": 50,
+			"wormhole": "NO_WORMHOLE",
+			"anomaly": "EMPTY",
+			"planets": [
+			]
+		},
+		{
+			"number": 44,
+			"wormhole": "NO_WORMHOLE",
+			"anomaly": "ASTEROID_FIELD",
+			"planets": [
+			]
+		},
+		{
+			"number": 47,
+			"wormhole": "NO_WORMHOLE",
+			"anomaly": "EMPTY",
+			"planets": [
+			]
+		},
+		{
+			"number": 48,
+			"wormhole": "NO_WORMHOLE",
+			"anomaly": "EMPTY",
+			"planets": [
+			]
+		},
+		{
+			"number": 41,
+			"wormhole": "NO_WORMHOLE",
+			"anomaly": "GRAVITY_RIFT",
+			"planets": [
+			]
+		},
+		{
+			"number": 42,
+			"wormhole": "NO_WORMHOLE",
+			"anomaly": "NEBULA",
+			"planets": [
+			]
+		},
+		{
+			"number": 39,
+			"wormhole": "ALPHA",
+			"anomaly": "EMPTY",
+			"planets": [
 			]
 		}
 	],
