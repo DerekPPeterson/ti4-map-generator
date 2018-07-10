@@ -55,7 +55,7 @@ def generate_galaxy(args):
             cmd += ["--random_homes"]
         elif args["race_selection_method"].value == "chosen":
             cmd += ["--choose_homes", "--races",
-                    remove_other_chars(args["races"].value, " 012345678")]
+                    remove_other_chars(args["races"].value, " 0123456789")]
         else:
             cmd += ["--dummy_homes"]
 
