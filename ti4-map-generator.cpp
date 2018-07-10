@@ -264,6 +264,7 @@ class Galaxy
     void place_tile(Location location, Tile*);
     void swap_tiles(Tile *, Tile *);
     int count_adjacent_anomalies();
+    int count_adjacent_wormholes();
     Tile* get_tile_at(Location location);
     list<Tile*> get_adjacent(Tile* t1);
     map<Tile*, float> distance_to_other_tiles(Tile* t1);
@@ -464,6 +465,7 @@ list<t> get_shuffled_list(list<t> l) {
     return l;
 }
 
+// TODO this funtion is way too long and filled with hardcoded bs
 void Galaxy::initialize_grid(int n_players, string mandatory_tile_numbers) {
     if (n_players < 3 or n_players > 6) {
         throw invalid_argument("Must have between 3 and 6 players");
@@ -841,9 +843,24 @@ int Galaxy::count_adjacent_anomalies()
 {
     int count = 0;
     for (auto t : movable_systems) {
-        if (t->get_anomaly()) {
+        if (t->get_anomaly() and t->get_anomaly() != EMPTY) {
             for (auto a : get_adjacent(t)) {
-                if (a->get_anomaly()) {
+                if (a->get_anomaly() and t->get_anomaly() != EMPTY) {
+                    count++;
+                }
+            }
+        }
+    }
+    return count;
+}
+
+int Galaxy::count_adjacent_wormholes()
+{
+    int count = 0;
+    for (auto t : movable_systems) {
+        if (t->get_wormhole()) {
+            for (auto a : get_adjacent(t)) {
+                if (t->get_wormhole() == a->get_wormhole()) {
                     count++;
                 }
             }
@@ -872,6 +889,7 @@ float Galaxy::evaluate_grid() {
     float score = 0;
 
     score += count_adjacent_anomalies();
+    score += count_adjacent_wormholes() * 2;
 
     // Some race specific options if requested. the large score penalty ensures
     // that these will be satisfied if possible
