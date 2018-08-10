@@ -92,10 +92,10 @@ def generate_galaxy(args):
     if p.returncode:
         raise Exception(err)
 
-    draw_galaxy.create_galaxy_image(
+    string = draw_galaxy.create_galaxy_image(
         os.path.join(GENERATED_DIR, galaxy_json_filename),
         os.path.join(GENERATED_DIR, galaxy_png_filename))
-    return galaxy_png_filename, seed
+    return galaxy_png_filename, seed, string
 
 
 def return_image(image):
@@ -109,10 +109,11 @@ def return_image(image):
 def return_main_page(args):
     print("Content-Type: text/html;charset=utf-8\n")
 
-    galaxy_img_name, seed = generate_galaxy(args)
+    galaxy_img_name, seed, string = generate_galaxy(args)
 
     print('<div align="right">Seed: %d</div><br>' % seed)
     print('<img src="./cgi-bin/ti4-map-generator-cgi.py?image=%s"/>' % galaxy_img_name)
+    print('<br>Map String:<br>' + string)
 
 cgitb.enable()
 args = cgi.FieldStorage()

@@ -15,6 +15,7 @@ TILE_IMAGE_X = 198
 TILE_IMAGE_Y = 172
 FONT_PATH = "../res/Slider Regular.ttf"
 DISPLAY_TYPE = DisplayType.TileImagesWithNumbers
+SPIRAL_PATTERN = [[3,3], [3,2], [4,3], [4,4], [3,4], [2,3], [2,2], [3,1], [4,2], [5,3], [5,4], [5,5], [4,5], [3,5], [2,4], [1,3], [1,2], [1,1], [2,1], [3,0], [4,1], [5,2], [6,3], [6,4], [6,5], [6,6], [5,6], [4,6], [3,6], [2,5], [1,4], [0,3], [0,2], [0,1], [0,0], [1,0], [2,0]]
 
 
 def get_tile_image(number):
@@ -96,6 +97,17 @@ def create_galaxy_image_from_grid(grid):
     return output
 
 
+def create_galaxy_string_from_grid(grid):
+    string = ""
+    for c in SPIRAL_PATTERN:
+        val = grid[c[0]][c[1]]
+        if(val < 0):
+            val = 0
+        string += "%d" % val
+        string += " "
+    return string
+
+
 def create_galaxy_image(galaxy_json_filename, output_filename, box=(900, 900)):
     json_file = open(galaxy_json_filename)
     galaxy = json.load(json_file)
@@ -103,6 +115,7 @@ def create_galaxy_image(galaxy_json_filename, output_filename, box=(900, 900)):
     image = image.resize(box, Image.BICUBIC)
     image = image.crop(image.getbbox())
     image.save(output_filename, "PNG")
+    return create_galaxy_string_from_grid(galaxy["grid"])
 
 
 if __name__ == "__main__":
