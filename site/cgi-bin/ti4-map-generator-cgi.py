@@ -113,7 +113,7 @@ def return_main_page(args):
 
     print('<div align="right">Seed: %d</div><br>' % seed)
     print('<img src="./cgi-bin/ti4-map-generator-cgi.py?image=%s"/>' % galaxy_img_name)
-    print('<br>Map String:<br>' + string)
+    print('<br>Map String (for use with <a href="https://steamcommunity.com/sharedfiles/filedetails/?id=1466689117">this tabletop simulator mod</a>):<br>' + string)
 
 cgitb.enable()
 args = cgi.FieldStorage()
@@ -121,7 +121,5 @@ if "image" in args:
     return_image(args["image"].value)
 else:
     return_main_page(args)
-
-
 
 2
