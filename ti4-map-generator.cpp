@@ -18,7 +18,6 @@
 #include "backward-cpp/backward.hpp"
 
 using json = nlohmann::json;
-
 using namespace std;
 
 enum PlanetTrait
@@ -246,7 +245,7 @@ enum HomeSystemSetups {DUMMY, RANDOM_RACES, CHOSEN_RACES};
 class Galaxy
 {
     list<Tile> tiles;
-    Tile *grid[7][7]; // Locations of tiles
+    vector<vector<Tile*>> grid; // Locations of tiles
     Tile *mecatol;
     list<Tile*> home_systems;
     list<Tile*> movable_systems;
@@ -257,15 +256,17 @@ class Galaxy
     map<string, float> evaluate_options;
 
     void import_tiles(string tile_filename);
+    void import_layout(string layout_filename, int n_players);
     void random_home_tiles(int n);
     void dummy_home_tiles(int n);
-    void chosen_home_tiles(int n, string chosen);
+    void chosen_home_tiles(string chosen);
     void initialize_grid(int n, string mandatory_tile_numbers);
     void place_tile(Location location, Tile*);
     void swap_tiles(Tile *, Tile *);
     int count_adjacent_anomalies();
     int count_adjacent_wormholes();
     Tile* get_tile_at(Location location);
+    Tile* get_tile_by_number(int n);
     list<Tile*> get_adjacent(Tile* t1);
     map<Tile*, float> distance_to_other_tiles(Tile* t1);
     double_tile_map calculate_stakes(double_tile_map distances);
@@ -276,8 +277,9 @@ class Galaxy
 
 
     public:
-    Galaxy(string tile_filename, int n_players, HomeSystemSetups, 
-            string home_tile_ids, string mandatory_tile_numbers);
+    Galaxy(string tile_filename, string layout_filename, int n_players, 
+            HomeSystemSetups, string home_tile_ids, 
+            string mandatory_tile_numbers);
     void print_grid();
     void print_distances_from(int);
     void set_evaluate_option(string name, float val);
@@ -286,11 +288,13 @@ class Galaxy
     void write_json(string filename);
 };
 
-Galaxy::Galaxy(string tile_filename, int n_players, HomeSystemSetups hss, 
-        string home_tile_numbers, string mandatory_tile_numbers)
+Galaxy::Galaxy(string tile_filename, string layout_filename, int n_players, 
+        HomeSystemSetups hss, string home_tile_numbers, 
+        string mandatory_tile_numbers)
     : boundary_tile(0)
 {
     import_tiles(tile_filename);
+    import_layout(layout_filename, n_players);
     switch (hss) {
         case DUMMY: 
             dummy_home_tiles(n_players);
@@ -299,7 +303,7 @@ Galaxy::Galaxy(string tile_filename, int n_players, HomeSystemSetups hss,
             random_home_tiles(n_players);
             break;
         case CHOSEN_RACES:
-            chosen_home_tiles(n_players, home_tile_numbers);
+            chosen_home_tiles(home_tile_numbers);
     }
     initialize_grid(n_players, mandatory_tile_numbers);
 
@@ -396,6 +400,80 @@ void Galaxy::import_tiles(string tile_filename)
     cerr << "Loaded " << tiles.size() << " tiles" << endl;
 }
 
+list<Tile*> get_tile_pointers(list<Tile*> tiles, string numbers)
+{
+    list<int> n_list;
+    stringstream chosen_ss(numbers);
+    int n;
+    while (chosen_ss >> n) {
+        cout << "using number " << n << endl;
+        n_list.push_back(n);
+    }
+    
+    list<Tile*> matching_tiles;
+    for (auto t : tiles) {
+        if (find(n_list.begin(), n_list.end(), t->get_number()) != n_list.end()) {
+            matching_tiles.push_back(t);
+        }
+    }
+
+    return matching_tiles;
+}
+
+Tile * Galaxy::get_tile_by_number(int n) {
+    for (auto it = tiles.begin(); it != tiles.end(); it++) {
+        if (it->get_number() == n) {
+            return &*it;
+        }
+    }
+    throw domain_error("No tile with requested number found");
+}
+
+void Galaxy::import_layout(string layout_filename, int n_players)
+{
+    json layout_json;
+    ifstream json_file;
+    cerr << "Importing layout from " << layout_filename << endl;
+    json_file.open(layout_filename);
+    try {json_file >> layout_json;} 
+    catch (...) {
+        cerr << "Error loading/parsing " << layout_filename << endl;
+        exit(-1);
+    }
+    json_file.close();
+
+    list<Location> valid_locations;
+    int max_i = 0;
+    int max_j = 0;
+    for (auto l : layout_json["valid_locations"]) {
+        int i = l.at(0);
+        int j = l.at(1);
+        max_i = i > max_i ? (int) i : max_i;
+        max_j = j > max_j ? (int) j : max_j;
+        valid_locations.push_back({i, j});
+    }
+
+    grid.resize(max_i+1, vector<Tile*>(max_j+1));
+    for (int i = 0; i <= max_i; i++) {
+        for (int j = 0; j <= max_j; j++) {
+            cout << i << " " << j << "\n";
+            place_tile({i, j}, NULL);
+        }
+    }
+
+    for (auto l : valid_locations) {
+        place_tile(l, &boundary_tile);
+    }
+
+    for (json::iterator it = layout_json["fixed_tiles"].begin(); it != layout_json["fixed_tiles"].end(); ++it) {
+        Tile* t = get_tile_by_number(stoi(it.key()));
+        int i = it.value().at(0);
+        int j = it.value().at(1);
+        place_tile({i, j}, t);
+    }
+    print_grid();
+}
+
 list<Tile*> get_shuffled_list(list<Tile*> l)
 {
     vector<Tile *> to_shuffle;
@@ -421,27 +499,7 @@ void Galaxy::random_home_tiles(int n) {
     }
 }
 
-list<Tile*> get_tile_pointers(list<Tile*> tiles, string numbers)
-{
-    list<int> n_list;
-    stringstream chosen_ss(numbers);
-    int n;
-    while (chosen_ss >> n) {
-        cout << "using number " << n << endl;
-        n_list.push_back(n);
-    }
-    
-    list<Tile*> matching_tiles;
-    for (auto t : tiles) {
-        if (find(n_list.begin(), n_list.end(), t->get_number()) != n_list.end()) {
-            matching_tiles.push_back(t);
-        }
-    }
-
-    return matching_tiles;
-}
-
-void Galaxy::chosen_home_tiles(int n, string chosen) {
+void Galaxy::chosen_home_tiles(string chosen) {
 
     list<Tile*> available_home_systems;
     available_home_systems = get_tile_pointers(home_systems, chosen);
@@ -467,25 +525,25 @@ list<t> get_shuffled_list(list<t> l) {
 
 // TODO this funtion is way too long and filled with hardcoded bs
 void Galaxy::initialize_grid(int n_players, string mandatory_tile_numbers) {
-    if (n_players < 3 or n_players > 6) {
-        throw invalid_argument("Must have between 3 and 6 players");
-    }
+    //if (n_players < 3 or n_players > 6) {
+    //    throw invalid_argument("Must have between 3 and 6 players");
+    //}
 
-    for (int i = 0; i < 7;i++) {
-        for (int j = 0; j < 7; j++) {
-            place_tile({i, j}, NULL);
-        }
-    }
-    for (int i = 0; i < 3;i++) {
-        for (int j = 4 + i; j < 7; j++) {
-            place_tile({i, j}, &boundary_tile);
-        }
-    }
-    for (int j = 0; j < 3;j++) {
-        for (int i = 4 + j; i < 7; i++) {
-            place_tile({i, j}, &boundary_tile);
-        }
-    }
+    //for (int i = 0; i < 7;i++) {
+    //    for (int j = 0; j < 7; j++) {
+    //        place_tile({i, j}, NULL);
+    //    }
+    //}
+    //for (int i = 0; i < 3;i++) {
+    //    for (int j = 4 + i; j < 7; j++) {
+    //        place_tile({i, j}, &boundary_tile);
+    //    }
+    //}
+    //for (int j = 0; j < 3;j++) {
+    //    for (int i = 4 + j; i < 7; i++) {
+    //        place_tile({i, j}, &boundary_tile);
+    //    }
+    //}
     if (n_players == 3) {
         list<Location> extra_removed = {{0,2},{0,3},{1,4},{2,0},{3,0},{4,1},{5,6},{6,6},{6,5}};
         for (auto l : extra_removed) {
@@ -494,7 +552,7 @@ void Galaxy::initialize_grid(int n_players, string mandatory_tile_numbers) {
     }
 
     // Place Mecatol at centre of galaxy
-    place_tile({3, 3}, mecatol);
+    //place_tile({3, 3}, mecatol);
 
     // Place home systems // TODO for custom shapes
     vector<Location> start_positions;
@@ -1047,6 +1105,7 @@ int main(int argc, char *argv[]) {
     options.add_options()
             ("h,help", "Print help")
             ("t,tiles", "json file defining tile properites", cxxopts::value<std::string>())
+            ("l,layout", "json file defining galaxy shape", cxxopts::value<std::string>())
             ("o,output", "galaxy json output filename", cxxopts::value<std::string>())
             ("p,players", "number of players", cxxopts::value<int>()->default_value("6"))
             ("s,seed", "random seed", cxxopts::value<int>())
@@ -1071,6 +1130,11 @@ int main(int argc, char *argv[]) {
     }
 
     if (not result.count("tiles") or not result.count("output")) {
+        std::cerr << options.help({""}) << std::endl;
+        exit(-1);
+    }
+
+    if (not result.count("layout") or not result.count("output")) {
         std::cerr << options.help({""}) << std::endl;
         exit(-1);
     }
@@ -1101,17 +1165,24 @@ int main(int argc, char *argv[]) {
         mandatory_tiles = result["mandatory_tiles"].as<string>();
     }
 
-    Galaxy galaxy(result["tiles"].as<string>(), result["players"].as<int>(), hss, races, mandatory_tiles);
+    Galaxy galaxy(result["tiles"].as<string>(), result["layout"].as<string>(), 
+            result["players"].as<int>(), hss, races, mandatory_tiles);
     float score = galaxy.evaluate_grid();
     cout << "Score: " << score << endl;
 
-    galaxy.set_evaluate_option("creuss_gets_wormhole", result["creuss_gets_wormhole"].as<int>());
-    galaxy.set_evaluate_option("muaat_gets_supernova", result["muaat_gets_supernova"].as<int>());
-    galaxy.set_evaluate_option("winnu_have_clear_path_to_mecatol", result["winnu_have_clear_path_to_mecatol"].as<int>());
+    galaxy.set_evaluate_option("creuss_gets_wormhole", 
+            result["creuss_gets_wormhole"].as<int>());
+    galaxy.set_evaluate_option("muaat_gets_supernova", 
+            result["muaat_gets_supernova"].as<int>());
+    galaxy.set_evaluate_option("winnu_have_clear_path_to_mecatol", 
+            result["winnu_have_clear_path_to_mecatol"].as<int>());
 
-    galaxy.set_evaluate_option("resource_weight", result["resource_weight"].as<float>());
-    galaxy.set_evaluate_option("influence_weight", result["influence_weight"].as<float>());
-    galaxy.set_evaluate_option("tech_weight", result["tech_weight"].as<float>());
+    galaxy.set_evaluate_option("resource_weight", 
+            result["resource_weight"].as<float>());
+    galaxy.set_evaluate_option("influence_weight", 
+            result["influence_weight"].as<float>());
+    galaxy.set_evaluate_option("tech_weight", 
+            result["tech_weight"].as<float>());
 
     galaxy.optimize_grid();
     score = galaxy.evaluate_grid();
