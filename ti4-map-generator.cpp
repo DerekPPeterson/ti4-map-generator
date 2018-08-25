@@ -457,12 +457,12 @@ void Galaxy::import_layout(string layout_filename, int n_players)
     for (int i = 0; i <= max_i; i++) {
         for (int j = 0; j <= max_j; j++) {
             cout << i << " " << j << "\n";
-            place_tile({i, j}, NULL);
+            place_tile({i, j}, &boundary_tile);
         }
     }
 
     for (auto l : valid_locations) {
-        place_tile(l, &boundary_tile);
+        place_tile(l, NULL);
     }
 
     for (json::iterator it = layout_json["fixed_tiles"].begin(); it != layout_json["fixed_tiles"].end(); ++it) {
@@ -471,7 +471,6 @@ void Galaxy::import_layout(string layout_filename, int n_players)
         int j = it.value().at(1);
         place_tile({i, j}, t);
     }
-    print_grid();
 }
 
 list<Tile*> get_shuffled_list(list<Tile*> l)
@@ -544,12 +543,12 @@ void Galaxy::initialize_grid(int n_players, string mandatory_tile_numbers) {
     //        place_tile({i, j}, &boundary_tile);
     //    }
     //}
-    if (n_players == 3) {
-        list<Location> extra_removed = {{0,2},{0,3},{1,4},{2,0},{3,0},{4,1},{5,6},{6,6},{6,5}};
-        for (auto l : extra_removed) {
-            place_tile(l, &boundary_tile);
-        }
-    }
+    //if (n_players == 3) {
+    //    list<Location> extra_removed = {{0,2},{0,3},{1,4},{2,0},{3,0},{4,1},{5,6},{6,6},{6,5}};
+    //    for (auto l : extra_removed) {
+    //        place_tile(l, &boundary_tile);
+    //    }
+    //}
 
     // Place Mecatol at centre of galaxy
     //place_tile({3, 3}, mecatol);
@@ -624,8 +623,8 @@ void Galaxy::initialize_grid(int n_players, string mandatory_tile_numbers) {
 
     random_tiles = get_shuffled_list(random_tiles);
     movable_systems.clear();
-    for (int i = 0; i < 7;i++) {
-        for (int j = 0; j < 7; j++) {
+    for (int i = 0; i < (int) grid.size(); i++) {
+        for (int j = 0; j < (int) grid[i].size(); j++) {
             if (not grid[i][j]) {
                 place_tile({i, j}, random_tiles.front());
                 movable_systems.push_back(random_tiles.front());
@@ -637,13 +636,11 @@ void Galaxy::initialize_grid(int n_players, string mandatory_tile_numbers) {
 
 
 void Galaxy::print_grid() {
-    int I = 7;
-    int J = 7;
-    for (int i = 0; i < I; i++) {
-        for (int i_pad = 0; i_pad < I - i; i_pad++) {
+    for (int i = 0; i < (int) grid.size(); i++) {
+        for (int i_pad = 0; i_pad < (int) grid.size() - i; i_pad++) {
             cout << "  ";
         }
-        for (int j = 0; j < J; j++) {
+        for (int j = 0; j < (int) grid[i].size(); j++) {
             if (grid[i][j] and grid[i][j] != &boundary_tile) {
                 printf(" %02d ", grid[i][j]->get_number());
             } else {
@@ -656,7 +653,8 @@ void Galaxy::print_grid() {
 
 Tile* Galaxy::get_tile_at(Location l) {
     //TODO different size?
-    if (l.i < 0 or l.i > 6 or l.j < 0 or l.j > 6) {
+    if (l.i < 0 or l.i >= (int) grid.size() 
+            or l.j < 0 or l.j >= (int) grid[l.i].size()) {
         return NULL;
     }
     Tile * tile = grid[l.i][l.j];
@@ -1084,9 +1082,9 @@ void Galaxy::write_json(string filename)
 {
     json j;
     j["grid"] = json::array();
-    for (int i = 0; i < 7; i++) {
+    for (int i = 0; i < (int) grid.size(); i++) {
         auto row = json::array();
-        for (int j = 0; j < 7; j++) {
+        for (int j = 0; j < (int) grid[i].size(); j++) {
             row.push_back(grid[i][j]->get_number());
         }
         j["grid"].push_back(row);
