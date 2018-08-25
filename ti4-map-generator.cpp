@@ -256,11 +256,11 @@ class Galaxy
     map<string, float> evaluate_options;
 
     void import_tiles(string tile_filename);
-    void import_layout(string layout_filename, int n_players);
+    list<Location> import_layout(string layout_filename, int n_players);
     void random_home_tiles(int n);
     void dummy_home_tiles(int n);
     void chosen_home_tiles(string chosen);
-    void initialize_grid(int n, string mandatory_tile_numbers);
+    void initialize_grid(list<Location> start_positions, string mandatory_tile_numbers);
     void place_tile(Location location, Tile*);
     void swap_tiles(Tile *, Tile *);
     int count_adjacent_anomalies();
@@ -294,7 +294,7 @@ Galaxy::Galaxy(string tile_filename, string layout_filename, int n_players,
     : boundary_tile(0)
 {
     import_tiles(tile_filename);
-    import_layout(layout_filename, n_players);
+    auto start_positions = import_layout(layout_filename, n_players);
     switch (hss) {
         case DUMMY: 
             dummy_home_tiles(n_players);
@@ -305,7 +305,7 @@ Galaxy::Galaxy(string tile_filename, string layout_filename, int n_players,
         case CHOSEN_RACES:
             chosen_home_tiles(home_tile_numbers);
     }
-    initialize_grid(n_players, mandatory_tile_numbers);
+    initialize_grid(start_positions, mandatory_tile_numbers);
 
     //for (auto i : tiles) {
     //    cout << i << endl;
@@ -429,7 +429,7 @@ Tile * Galaxy::get_tile_by_number(int n) {
     throw domain_error("No tile with requested number found");
 }
 
-void Galaxy::import_layout(string layout_filename, int n_players)
+list<Location> Galaxy::import_layout(string layout_filename, int n_players)
 {
     json layout_json;
     ifstream json_file;
@@ -471,6 +471,14 @@ void Galaxy::import_layout(string layout_filename, int n_players)
         int j = it.value().at(1);
         place_tile({i, j}, t);
     }
+
+    list<Location> start_positions;
+    for (auto l : layout_json["home_tile_positions"][to_string(n_players)]) {
+        int i = l.at(0);
+        int j = l.at(1);
+        start_positions.push_back({i, j});
+    }
+    return start_positions;
 }
 
 list<Tile*> get_shuffled_list(list<Tile*> l)
@@ -523,54 +531,18 @@ list<t> get_shuffled_list(list<t> l) {
 }
 
 // TODO this funtion is way too long and filled with hardcoded bs
-void Galaxy::initialize_grid(int n_players, string mandatory_tile_numbers) {
-    //if (n_players < 3 or n_players > 6) {
-    //    throw invalid_argument("Must have between 3 and 6 players");
-    //}
+void Galaxy::initialize_grid(list<Location> start_positions, string mandatory_tile_numbers) {
 
-    //for (int i = 0; i < 7;i++) {
-    //    for (int j = 0; j < 7; j++) {
-    //        place_tile({i, j}, NULL);
-    //    }
-    //}
-    //for (int i = 0; i < 3;i++) {
-    //    for (int j = 4 + i; j < 7; j++) {
-    //        place_tile({i, j}, &boundary_tile);
-    //    }
-    //}
-    //for (int j = 0; j < 3;j++) {
-    //    for (int i = 4 + j; i < 7; i++) {
-    //        place_tile({i, j}, &boundary_tile);
-    //    }
-    //}
-    //if (n_players == 3) {
-    //    list<Location> extra_removed = {{0,2},{0,3},{1,4},{2,0},{3,0},{4,1},{5,6},{6,6},{6,5}};
-    //    for (auto l : extra_removed) {
-    //        place_tile(l, &boundary_tile);
-    //    }
-    //}
-
-    // Place Mecatol at centre of galaxy
-    //place_tile({3, 3}, mecatol);
-
-    // Place home systems // TODO for custom shapes
-    vector<Location> start_positions;
-    switch (n_players) {
-        case 3: {vector<Location> tmp = {{0,0},{3,6},{6,3}}; start_positions = tmp; break;}
-        case 4: {vector<Location> tmp = {{0,2},{4,6},{6,4},{2,0}}; start_positions = tmp; break;}
-        case 5: {vector<Location> tmp = {{0,2},{6,3},{3,6},{6,6},{2,0}}; start_positions = tmp; break;}
-        case 6: {vector<Location> tmp = {{0,0},{0,3},{3,6},{6,6},{6,3},{3,0}}; start_positions = tmp; break;}
-    }
-    int i = 0;
+    auto sp_it = start_positions.begin();
     for (auto it : get_shuffled_list(home_systems)) {
-        place_tile(start_positions[i], it);
-        i++;
+        place_tile(*sp_it, it);
+        sp_it++;
     }
 
     // Shuffle tiles always including mandatory tiles first
     list<Tile*> random_tiles;
     int n_red, n_blue; // number of each colored tiles to include
-    switch (n_players) {
+    switch (start_positions.size()) {
         case 3:
             n_blue = 3 * 6;
             n_red = 3 * 2;
