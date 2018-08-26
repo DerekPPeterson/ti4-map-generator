@@ -270,6 +270,7 @@ class Galaxy
     void initialize_grid(struct layout_info layout_info, string mandatory_tile_numbers, bool star_by_star);
     void place_tile(Location location, Tile*);
     void swap_tiles(Tile *, Tile *);
+    int count_home_systems_without_planets();
     int count_adjacent_anomalies();
     int count_adjacent_home_systems();
     int count_adjacent_wormholes();
@@ -355,8 +356,12 @@ Tile create_tile_from_json(json j)
         planets.push_back(create_planet_from_json(it.value()));
     }
 
-    Tile new_tile = Tile(number, planets, wormhole, anomaly);
-    return new_tile;
+    if (j.find("race") != j.end()) {
+        string race = j["race"];
+        return Tile(number, planets, race);
+    } else {
+        return Tile(number, planets, wormhole, anomaly);
+    }
 }
 
 void Galaxy::import_tiles(string tile_filename)
@@ -870,6 +875,23 @@ void Galaxy::print_distances_from(int tile_num)
     }
 }
 
+int Galaxy::count_home_systems_without_planets()
+{
+    int count = 0;
+    for (auto t : home_systems) {
+        int n_planet_tiles_adjacent = 0;
+        for (auto a : get_adjacent(t)) {
+            if (a->get_resource_value() || a->get_influence_value()) {
+                n_planet_tiles_adjacent++;
+            }
+            if (not n_planet_tiles_adjacent) {
+                count++;
+            }
+        }
+    }
+    return count;
+}
+
 int Galaxy::count_adjacent_home_systems()
 {
     int count = 0;
@@ -932,6 +954,7 @@ float Galaxy::evaluate_grid() {
    
     float score = 0;
 
+    score += count_home_systems_without_planets() * 10;
     score += count_adjacent_home_systems() * 5;
     score += count_adjacent_anomalies();
     score += count_adjacent_wormholes() * 2;

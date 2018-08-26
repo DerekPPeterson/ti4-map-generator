@@ -63,6 +63,9 @@ def generate_galaxy(args):
         else:
             cmd += ["--dummy_homes"]
 
+    if "star_by_star" in args and args["star_by_star"].value == "true":
+        cmd += ["--star_by_star"]
+
     if "creuss_gets_wormhole" in args and args["creuss_gets_wormhole"].value == "true":
         cmd += ["--creuss_gets_wormhole", "1"]
     elif args["creuss_gets_wormhole"].value == "false":
