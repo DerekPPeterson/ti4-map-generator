@@ -49,6 +49,7 @@ def generate_galaxy(args):
 
     cmd = ["./ti4-map-generator",
            "-t", "tiles.json",
+           "-l", args["layout"].value,
            "-o", os.path.join(GENERATED_DIR, galaxy_json_filename),
            "-p", str(n_players),
            "-s", str(seed)]
