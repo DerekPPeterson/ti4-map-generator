@@ -8,8 +8,11 @@ import os
 import sys
 import subprocess
 import draw_galaxy
+import json
+from glob import glob
 
 GENERATED_DIR = "../generated"
+LAYOUTS_DIR = "../res/layouts"
 
 
 def random_string(N):
@@ -46,6 +49,7 @@ def generate_galaxy(args):
 
     cmd = ["./ti4-map-generator",
            "-t", "tiles.json",
+           "-l", args["layout"].value,
            "-o", os.path.join(GENERATED_DIR, galaxy_json_filename),
            "-p", str(n_players),
            "-s", str(seed)]
@@ -58,6 +62,9 @@ def generate_galaxy(args):
                     remove_other_chars(args["races"].value, " 0123456789")]
         else:
             cmd += ["--dummy_homes"]
+
+    if "star_by_star" in args and args["star_by_star"].value == "true":
+        cmd += ["--star_by_star"]
 
     if "creuss_gets_wormhole" in args and args["creuss_gets_wormhole"].value == "true":
         cmd += ["--creuss_gets_wormhole", "1"]
@@ -106,6 +113,30 @@ def return_image(image):
         sys.stdout.write(f.read())
 
 
+def return_layouts():
+    layouts = {}
+    for layout_file in glob(LAYOUTS_DIR + "/*"):
+        with open(layout_file, "r") as f:
+            layout = json.load(f)
+            layouts[layout_file] = {}
+            layouts[layout_file]["layout_name"] = layout["layout_name"]
+            layouts[layout_file]["supports_players"] = []
+            for n_players in layout["home_tile_positions"]:
+                layouts[layout_file]["supports_players"].append(n_players)
+
+            layouts[layout_file]["default"] = "false"
+            try:
+                if (layout["default"] == "true"):
+                    layouts[layout_file]["default"] = "true"
+            except:
+                pass
+
+    sys.stdout.write("Content-Type: application/json")
+    sys.stdout.write("\n")
+    sys.stdout.write("\n")
+    sys.stdout.write(json.dumps(layouts))
+
+
 def return_main_page(args):
     print("Content-Type: text/html;charset=utf-8\n")
 
@@ -119,6 +150,8 @@ cgitb.enable()
 args = cgi.FieldStorage()
 if "image" in args:
     return_image(args["image"].value)
+elif "get_layouts" in args:
+    return_layouts()
 else:
     return_main_page(args)
 

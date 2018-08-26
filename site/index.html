@@ -12,7 +12,7 @@
 	<h1>TWILIGHT IMPERIUM IV BALANCED MAP GENERATOR</h1>
 	<div id="text_div" style="float:left">
 		<form id="generate_form" action="./cgi-bin/ti4-map-generator-cgi.py">
-			<h3>Player Settings</h3>
+			<h3>Player/Layout Settings</h3>
 			<label>Number of Players:
 			<select id="n_players" name="n_players">
 				<option value=6>6</option>
@@ -20,6 +20,11 @@
 				<option value=4>4</option>
 				<option value=3>3</option>
 			</select></label>
+			<br>
+			<label title="Defines possible tile locations, home_system start positions and any fixed tiles such as Mecatol Rex. Most layouts only support a select number of players, this box will update after selecting number of players to show compatible layouts">Layout:
+			<select id="layout" name="layout">
+			</select></label>
+			<label title="Star-by-Star layouts let the Home Systems be placed anwhere in the galaxy, so long as they are not next to one another"><input type="checkbox" id="star_by_star" name="star_by_star"/>Star-by-Star</label>
 			<br>
 
 			<label title="Home tiles will have no specific race attached"><input type="radio" id="race_selection_method" name="race_selection_method" value="dummy" checked> Blank Home Systems</label>
@@ -55,6 +60,7 @@
 	<div id="galaxy_image_div" style="float:left;"></div>
 
 	<script text/javascript>
+		var LAYOUT_INFO;
 		$("#document").ready(function() {
 
 			function create_race_selection_boxes() {
@@ -118,9 +124,33 @@
 				return hasDuplicates(races);
 			}
 
+			function update_layouts() {
+				n_players = $("#n_players").val();
+				$("#layout").html("");
+				var default_value;
+				for (layout_filename in LAYOUT_INFO) {
+					if ($.inArray(n_players, LAYOUT_INFO[layout_filename].supports_players) > -1) {
+						var added_option = $("#layout").append("<option value='" + layout_filename + "'>" 
+							+ LAYOUT_INFO[layout_filename].layout_name + "</option>");
+						if (LAYOUT_INFO[layout_filename].default === "true") {
+							default_value = layout_filename;
+						}
+					}
+				}
+				$("#layout").val(default_value);
+			}
+
+			var layouts_get = $.get("./cgi-bin/ti4-map-generator-cgi.py",
+				{get_layouts: true});
+			layouts_get.done(function(data) {
+				LAYOUT_INFO = data;
+				update_layouts();
+			});
+
 
 			create_race_selection_boxes();
 			$('#n_players').change(create_race_selection_boxes);
+			$('#n_players').change(update_layouts);
 			$('input[name=race_selection_method]').click(create_race_selection_boxes);
 
 			$("#generate_form").submit(function(event) {
@@ -139,7 +169,9 @@
 						display_type: $("#display_type:checked").val(),
 						race_selection_method: $("#race_selection_method:checked").val(),
 						n_players: $("#n_players").val(),
+						layout: $("#layout").val(),
 						races: get_selected_races(),
+						star_by_star: $("#star_by_star").prop("checked"),
 						creuss_gets_wormhole: $("#creuss_gets_wormhole").prop("checked"),
 						muaat_gets_supernova: $("#muaat_gets_supernova").prop("checked"),
 						winnu_clear_path_to_mecatol: $("#winnu_clear_path_to_mecatol").prop("checked"),

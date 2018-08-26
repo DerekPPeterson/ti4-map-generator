@@ -18,7 +18,6 @@
 #include "backward-cpp/backward.hpp"
 
 using json = nlohmann::json;
-
 using namespace std;
 
 enum PlanetTrait
@@ -243,10 +242,17 @@ typedef map<Tile*,map<Tile*, float>> double_tile_map;
 
 enum HomeSystemSetups {DUMMY, RANDOM_RACES, CHOSEN_RACES};
 
+struct layout_info
+{
+    int n_blue;
+    int n_red;
+    list<Location> start_positions;
+};
+
 class Galaxy
 {
     list<Tile> tiles;
-    Tile *grid[7][7]; // Locations of tiles
+    vector<vector<Tile*>> grid; // Locations of tiles
     Tile *mecatol;
     list<Tile*> home_systems;
     list<Tile*> movable_systems;
@@ -257,15 +263,19 @@ class Galaxy
     map<string, float> evaluate_options;
 
     void import_tiles(string tile_filename);
+    struct layout_info import_layout(string layout_filename, int n_players);
     void random_home_tiles(int n);
     void dummy_home_tiles(int n);
-    void chosen_home_tiles(int n, string chosen);
-    void initialize_grid(int n, string mandatory_tile_numbers);
+    void chosen_home_tiles(string chosen);
+    void initialize_grid(struct layout_info layout_info, string mandatory_tile_numbers, bool star_by_star);
     void place_tile(Location location, Tile*);
     void swap_tiles(Tile *, Tile *);
+    int count_home_systems_without_planets();
     int count_adjacent_anomalies();
+    int count_adjacent_home_systems();
     int count_adjacent_wormholes();
     Tile* get_tile_at(Location location);
+    Tile* get_tile_by_number(int n);
     list<Tile*> get_adjacent(Tile* t1);
     map<Tile*, float> distance_to_other_tiles(Tile* t1);
     double_tile_map calculate_stakes(double_tile_map distances);
@@ -276,8 +286,9 @@ class Galaxy
 
 
     public:
-    Galaxy(string tile_filename, int n_players, HomeSystemSetups, 
-            string home_tile_ids, string mandatory_tile_numbers);
+    Galaxy(string tile_filename, string layout_filename, int n_players, 
+            HomeSystemSetups, string home_tile_ids, 
+            string mandatory_tile_numbers, bool star_by_star);
     void print_grid();
     void print_distances_from(int);
     void set_evaluate_option(string name, float val);
@@ -286,11 +297,13 @@ class Galaxy
     void write_json(string filename);
 };
 
-Galaxy::Galaxy(string tile_filename, int n_players, HomeSystemSetups hss, 
-        string home_tile_numbers, string mandatory_tile_numbers)
+Galaxy::Galaxy(string tile_filename, string layout_filename, int n_players, 
+        HomeSystemSetups hss, string home_tile_numbers, 
+        string mandatory_tile_numbers, bool star_by_star)
     : boundary_tile(0)
 {
     import_tiles(tile_filename);
+    auto info = import_layout(layout_filename, n_players);
     switch (hss) {
         case DUMMY: 
             dummy_home_tiles(n_players);
@@ -299,9 +312,9 @@ Galaxy::Galaxy(string tile_filename, int n_players, HomeSystemSetups hss,
             random_home_tiles(n_players);
             break;
         case CHOSEN_RACES:
-            chosen_home_tiles(n_players, home_tile_numbers);
+            chosen_home_tiles(home_tile_numbers);
     }
-    initialize_grid(n_players, mandatory_tile_numbers);
+    initialize_grid(info, mandatory_tile_numbers, star_by_star);
 
     //for (auto i : tiles) {
     //    cout << i << endl;
@@ -343,8 +356,12 @@ Tile create_tile_from_json(json j)
         planets.push_back(create_planet_from_json(it.value()));
     }
 
-    Tile new_tile = Tile(number, planets, wormhole, anomaly);
-    return new_tile;
+    if (j.find("race") != j.end()) {
+        string race = j["race"];
+        return Tile(number, planets, race);
+    } else {
+        return Tile(number, planets, wormhole, anomaly);
+    }
 }
 
 void Galaxy::import_tiles(string tile_filename)
@@ -396,6 +413,90 @@ void Galaxy::import_tiles(string tile_filename)
     cerr << "Loaded " << tiles.size() << " tiles" << endl;
 }
 
+list<Tile*> get_tile_pointers(list<Tile*> tiles, string numbers)
+{
+    list<int> n_list;
+    stringstream chosen_ss(numbers);
+    int n;
+    while (chosen_ss >> n) {
+        cout << "using number " << n << endl;
+        n_list.push_back(n);
+    }
+    
+    list<Tile*> matching_tiles;
+    for (auto t : tiles) {
+        if (find(n_list.begin(), n_list.end(), t->get_number()) != n_list.end()) {
+            matching_tiles.push_back(t);
+        }
+    }
+
+    return matching_tiles;
+}
+
+Tile * Galaxy::get_tile_by_number(int n) {
+    for (auto it = tiles.begin(); it != tiles.end(); it++) {
+        if (it->get_number() == n) {
+            return &*it;
+        }
+    }
+    throw domain_error("No tile with requested number found");
+}
+
+
+struct layout_info Galaxy::import_layout(string layout_filename, int n_players)
+{
+    json layout_json;
+    ifstream json_file;
+    cerr << "Importing layout from " << layout_filename << endl;
+    json_file.open(layout_filename);
+    try {json_file >> layout_json;} 
+    catch (...) {
+        cerr << "Error loading/parsing " << layout_filename << endl;
+        exit(-1);
+    }
+    json_file.close();
+
+    list<Location> valid_locations;
+    int max_i = 0;
+    int max_j = 0;
+    for (auto l : layout_json["valid_locations"]) {
+        int i = l.at(0);
+        int j = l.at(1);
+        max_i = i > max_i ? (int) i : max_i;
+        max_j = j > max_j ? (int) j : max_j;
+        valid_locations.push_back({i, j});
+    }
+
+    grid.resize(max_i+1, vector<Tile*>(max_j+1));
+    for (int i = 0; i <= max_i; i++) {
+        for (int j = 0; j <= max_j; j++) {
+            place_tile({i, j}, &boundary_tile);
+        }
+    }
+
+    for (auto l : valid_locations) {
+        place_tile(l, NULL);
+    }
+
+    for (json::iterator it = layout_json["fixed_tiles"].begin(); it != layout_json["fixed_tiles"].end(); ++it) {
+        Tile* t = get_tile_by_number(stoi(it.key()));
+        int i = it.value().at(0);
+        int j = it.value().at(1);
+        place_tile({i, j}, t);
+    }
+
+    struct layout_info info;
+    for (auto l : layout_json["home_tile_positions"][to_string(n_players)]) {
+        int i = l.at(0);
+        int j = l.at(1);
+        info.start_positions.push_back({i, j});
+    }
+
+    info.n_blue = layout_json["movable_tile_counts"][to_string(n_players)]["blue"];
+    info.n_red = layout_json["movable_tile_counts"][to_string(n_players)]["red"];
+    return info;
+}
+
 list<Tile*> get_shuffled_list(list<Tile*> l)
 {
     vector<Tile *> to_shuffle;
@@ -421,27 +522,7 @@ void Galaxy::random_home_tiles(int n) {
     }
 }
 
-list<Tile*> get_tile_pointers(list<Tile*> tiles, string numbers)
-{
-    list<int> n_list;
-    stringstream chosen_ss(numbers);
-    int n;
-    while (chosen_ss >> n) {
-        cout << "using number " << n << endl;
-        n_list.push_back(n);
-    }
-    
-    list<Tile*> matching_tiles;
-    for (auto t : tiles) {
-        if (find(n_list.begin(), n_list.end(), t->get_number()) != n_list.end()) {
-            matching_tiles.push_back(t);
-        }
-    }
-
-    return matching_tiles;
-}
-
-void Galaxy::chosen_home_tiles(int n, string chosen) {
+void Galaxy::chosen_home_tiles(string chosen) {
 
     list<Tile*> available_home_systems;
     available_home_systems = get_tile_pointers(home_systems, chosen);
@@ -465,86 +546,40 @@ list<t> get_shuffled_list(list<t> l) {
     return l;
 }
 
-// TODO this funtion is way too long and filled with hardcoded bs
-void Galaxy::initialize_grid(int n_players, string mandatory_tile_numbers) {
-    if (n_players < 3 or n_players > 6) {
-        throw invalid_argument("Must have between 3 and 6 players");
-    }
+void Galaxy::initialize_grid(struct layout_info layout_info, string mandatory_tile_numbers, bool star_by_star) {
 
-    for (int i = 0; i < 7;i++) {
-        for (int j = 0; j < 7; j++) {
-            place_tile({i, j}, NULL);
-        }
-    }
-    for (int i = 0; i < 3;i++) {
-        for (int j = 4 + i; j < 7; j++) {
-            place_tile({i, j}, &boundary_tile);
-        }
-    }
-    for (int j = 0; j < 3;j++) {
-        for (int i = 4 + j; i < 7; i++) {
-            place_tile({i, j}, &boundary_tile);
-        }
-    }
-    if (n_players == 3) {
-        list<Location> extra_removed = {{0,2},{0,3},{1,4},{2,0},{3,0},{4,1},{5,6},{6,6},{6,5}};
-        for (auto l : extra_removed) {
-            place_tile(l, &boundary_tile);
+    // Place home systems (Star by star means that home systems can be anywhere)
+    if (not star_by_star) {
+        auto sp_it = layout_info.start_positions.begin();
+        for (auto it : get_shuffled_list(home_systems)) {
+            place_tile(*sp_it, it);
+            sp_it++;
         }
     }
 
-    // Place Mecatol at centre of galaxy
-    place_tile({3, 3}, mecatol);
-
-    // Place home systems // TODO for custom shapes
-    vector<Location> start_positions;
-    switch (n_players) {
-        case 3: {vector<Location> tmp = {{0,0},{3,6},{6,3}}; start_positions = tmp; break;}
-        case 4: {vector<Location> tmp = {{0,2},{4,6},{6,4},{2,0}}; start_positions = tmp; break;}
-        case 5: {vector<Location> tmp = {{0,2},{6,3},{3,6},{6,6},{2,0}}; start_positions = tmp; break;}
-        case 6: {vector<Location> tmp = {{0,0},{0,3},{3,6},{6,6},{6,3},{3,0}}; start_positions = tmp; break;}
-    }
-    int i = 0;
-    for (auto it : get_shuffled_list(home_systems)) {
-        place_tile(start_positions[i], it);
-        i++;
-    }
-
-    // Shuffle tiles always including mandatory tiles first
+    // Collect tiles to randomly place later as the inital galaxy setup, starting 
+    // with mandatory tiles
     list<Tile*> random_tiles;
-    int n_red, n_blue; // number of each colored tiles to include
-    switch (n_players) {
-        case 3:
-            n_blue = 3 * 6;
-            n_red = 3 * 2;
-            break;
-        case 4:
-            n_blue = 4 * 5;
-            n_red = 4 * 3;
-            break;
-        case 5:
-            n_blue = 4 * 5;
-            n_red = 2 * 5 + 1;
-            break;
-        case 6:
-            n_blue = 3 * 6;
-            n_red = 2 * 6;
-            break;
-    }
     list<Tile*> tmp;
     tmp = get_tile_pointers(blue_tiles, mandatory_tile_numbers);
-    n_blue -= tmp.size();
+    layout_info.n_blue -= tmp.size();
     random_tiles = tmp;
 
     tmp = get_tile_pointers(red_tiles, mandatory_tile_numbers);
-    n_red -= tmp.size();
+    layout_info.n_red -= tmp.size();
     random_tiles.insert(random_tiles.end(), tmp.begin(), tmp.end());
 
+    // Also home systems if playing star by star
+    if (star_by_star) {
+        random_tiles.insert(random_tiles.end(), home_systems.begin(), home_systems.end());
+    }
+
+    // Then just get the rest of the needed tiles
     for (auto s : get_shuffled_list(blue_tiles)) {
         if (find(random_tiles.begin(), random_tiles.end(), s) == random_tiles.end()) {
             random_tiles.push_back(s);
-            n_blue--;
-            if (not n_blue) {
+            layout_info.n_blue--;
+            if (not layout_info.n_blue) {
                 break;
             }
         }
@@ -553,21 +588,19 @@ void Galaxy::initialize_grid(int n_players, string mandatory_tile_numbers) {
     for (auto s : get_shuffled_list(red_tiles)) {
         if (find(random_tiles.begin(), random_tiles.end(), s) == random_tiles.end()) {
             random_tiles.push_back(s);
-            n_red--;
-            if (not n_red) {
+            layout_info.n_red--;
+            if (not layout_info.n_red) {
                 break;
             }
         }
     }
 
-    for (auto s : movable_systems) {
-        printf("included tile - %d\n", s->get_number());
-    }
-
+    // Shuffle the tiles to be placed and place them in the grid
+    // Any tiles placed this way are also movable tiles
     random_tiles = get_shuffled_list(random_tiles);
     movable_systems.clear();
-    for (int i = 0; i < 7;i++) {
-        for (int j = 0; j < 7; j++) {
+    for (int i = 0; i < (int) grid.size(); i++) {
+        for (int j = 0; j < (int) grid[i].size(); j++) {
             if (not grid[i][j]) {
                 place_tile({i, j}, random_tiles.front());
                 movable_systems.push_back(random_tiles.front());
@@ -579,13 +612,11 @@ void Galaxy::initialize_grid(int n_players, string mandatory_tile_numbers) {
 
 
 void Galaxy::print_grid() {
-    int I = 7;
-    int J = 7;
-    for (int i = 0; i < I; i++) {
-        for (int i_pad = 0; i_pad < I - i; i_pad++) {
+    for (int i = 0; i < (int) grid.size(); i++) {
+        for (int i_pad = 0; i_pad < (int) grid.size() - i; i_pad++) {
             cout << "  ";
         }
-        for (int j = 0; j < J; j++) {
+        for (int j = 0; j < (int) grid[i].size(); j++) {
             if (grid[i][j] and grid[i][j] != &boundary_tile) {
                 printf(" %02d ", grid[i][j]->get_number());
             } else {
@@ -598,7 +629,8 @@ void Galaxy::print_grid() {
 
 Tile* Galaxy::get_tile_at(Location l) {
     //TODO different size?
-    if (l.i < 0 or l.i > 6 or l.j < 0 or l.j > 6) {
+    if (l.i < 0 or l.i >= (int) grid.size() 
+            or l.j < 0 or l.j >= (int) grid[l.i].size()) {
         return NULL;
     }
     Tile * tile = grid[l.i][l.j];
@@ -686,6 +718,10 @@ double_tile_map Galaxy::calculate_stakes(double_tile_map distances)
 {
     double_tile_map stakes;
     for (auto t : movable_systems) {
+        // Other races have no stakes in each-other's home systems
+        if (t->is_home_system()) {
+            continue;
+        }
         map<Tile*, float> stakes_in_system;
         for (auto hs : home_systems) {
             try {
@@ -839,6 +875,36 @@ void Galaxy::print_distances_from(int tile_num)
     }
 }
 
+int Galaxy::count_home_systems_without_planets()
+{
+    int count = 0;
+    for (auto t : home_systems) {
+        int n_planet_tiles_adjacent = 0;
+        for (auto a : get_adjacent(t)) {
+            if (a->get_resource_value() || a->get_influence_value()) {
+                n_planet_tiles_adjacent++;
+            }
+            if (not n_planet_tiles_adjacent) {
+                count++;
+            }
+        }
+    }
+    return count;
+}
+
+int Galaxy::count_adjacent_home_systems()
+{
+    int count = 0;
+    for (auto t : home_systems) {
+        for (auto a : get_adjacent(t)) {
+            if (a->is_home_system()) {
+                count++;
+            }
+        }
+    }
+    return count;
+}
+
 int Galaxy::count_adjacent_anomalies()
 {
     int count = 0;
@@ -888,6 +954,8 @@ float Galaxy::evaluate_grid() {
    
     float score = 0;
 
+    score += count_home_systems_without_planets() * 10;
+    score += count_adjacent_home_systems() * 5;
     score += count_adjacent_anomalies();
     score += count_adjacent_wormholes() * 2;
 
@@ -1026,9 +1094,9 @@ void Galaxy::write_json(string filename)
 {
     json j;
     j["grid"] = json::array();
-    for (int i = 0; i < 7; i++) {
+    for (int i = 0; i < (int) grid.size(); i++) {
         auto row = json::array();
-        for (int j = 0; j < 7; j++) {
+        for (int j = 0; j < (int) grid[i].size(); j++) {
             row.push_back(grid[i][j]->get_number());
         }
         j["grid"].push_back(row);
@@ -1047,9 +1115,11 @@ int main(int argc, char *argv[]) {
     options.add_options()
             ("h,help", "Print help")
             ("t,tiles", "json file defining tile properites", cxxopts::value<std::string>())
+            ("l,layout", "json file defining galaxy shape", cxxopts::value<std::string>())
             ("o,output", "galaxy json output filename", cxxopts::value<std::string>())
             ("p,players", "number of players", cxxopts::value<int>()->default_value("6"))
             ("s,seed", "random seed", cxxopts::value<int>())
+            ("star_by_star", "allow free placement of home systems")
             ("dummy_homes", "use blank home systems (default)")
             ("random_homes", "use random race home systems")
             ("choose_homes", "use with --races option")
@@ -1071,6 +1141,11 @@ int main(int argc, char *argv[]) {
     }
 
     if (not result.count("tiles") or not result.count("output")) {
+        std::cerr << options.help({""}) << std::endl;
+        exit(-1);
+    }
+
+    if (not result.count("layout") or not result.count("output")) {
         std::cerr << options.help({""}) << std::endl;
         exit(-1);
     }
@@ -1101,17 +1176,25 @@ int main(int argc, char *argv[]) {
         mandatory_tiles = result["mandatory_tiles"].as<string>();
     }
 
-    Galaxy galaxy(result["tiles"].as<string>(), result["players"].as<int>(), hss, races, mandatory_tiles);
+    Galaxy galaxy(result["tiles"].as<string>(), result["layout"].as<string>(), 
+            result["players"].as<int>(), hss, races, mandatory_tiles, 
+            result.count("star_by_star") ? true : false);
     float score = galaxy.evaluate_grid();
     cout << "Score: " << score << endl;
 
-    galaxy.set_evaluate_option("creuss_gets_wormhole", result["creuss_gets_wormhole"].as<int>());
-    galaxy.set_evaluate_option("muaat_gets_supernova", result["muaat_gets_supernova"].as<int>());
-    galaxy.set_evaluate_option("winnu_have_clear_path_to_mecatol", result["winnu_have_clear_path_to_mecatol"].as<int>());
+    galaxy.set_evaluate_option("creuss_gets_wormhole", 
+            result["creuss_gets_wormhole"].as<int>());
+    galaxy.set_evaluate_option("muaat_gets_supernova", 
+            result["muaat_gets_supernova"].as<int>());
+    galaxy.set_evaluate_option("winnu_have_clear_path_to_mecatol", 
+            result["winnu_have_clear_path_to_mecatol"].as<int>());
 
-    galaxy.set_evaluate_option("resource_weight", result["resource_weight"].as<float>());
-    galaxy.set_evaluate_option("influence_weight", result["influence_weight"].as<float>());
-    galaxy.set_evaluate_option("tech_weight", result["tech_weight"].as<float>());
+    galaxy.set_evaluate_option("resource_weight", 
+            result["resource_weight"].as<float>());
+    galaxy.set_evaluate_option("influence_weight", 
+            result["influence_weight"].as<float>());
+    galaxy.set_evaluate_option("tech_weight", 
+            result["tech_weight"].as<float>());
 
     galaxy.optimize_grid();
     score = galaxy.evaluate_grid();
