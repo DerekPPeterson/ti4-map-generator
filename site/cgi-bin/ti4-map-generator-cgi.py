@@ -8,8 +8,11 @@ import os
 import sys
 import subprocess
 import draw_galaxy
+import json
+from glob import glob
 
 GENERATED_DIR = "../generated"
+LAYOUTS_DIR = "../res/layouts"
 
 
 def random_string(N):
@@ -106,6 +109,23 @@ def return_image(image):
         sys.stdout.write(f.read())
 
 
+def return_layouts():
+    layouts = {}
+    for layout_file in glob(LAYOUTS_DIR + "/*"):
+        with open(layout_file, "r") as f:
+            layout = json.load(f)
+            layouts[layout_file] = {}
+            layouts[layout_file]["layout_name"] = layout["layout_name"]
+            layouts[layout_file]["supports_players"] = []
+            for n_players in layout["home_tile_positions"]:
+                layouts[layout_file]["supports_players"].append(n_players)
+
+    sys.stdout.write("Content-Type: application/json")
+    sys.stdout.write("\n")
+    sys.stdout.write("\n")
+    sys.stdout.write(json.dumps(layouts))
+
+
 def return_main_page(args):
     print("Content-Type: text/html;charset=utf-8\n")
 
@@ -119,6 +139,8 @@ cgitb.enable()
 args = cgi.FieldStorage()
 if "image" in args:
     return_image(args["image"].value)
+elif "get_layouts" in args:
+    return_layouts()
 else:
     return_main_page(args)
 

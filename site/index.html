@@ -20,6 +20,9 @@
 				<option value=4>4</option>
 				<option value=3>3</option>
 			</select></label>
+			<label>Layout:
+			<select id="layout" name="layout">
+			</select></label>
 			<br>
 
 			<label title="Home tiles will have no specific race attached"><input type="radio" id="race_selection_method" name="race_selection_method" value="dummy" checked> Blank Home Systems</label>
@@ -55,6 +58,7 @@
 	<div id="galaxy_image_div" style="float:left;"></div>
 
 	<script text/javascript>
+		var LAYOUT_INFO;
 		$("#document").ready(function() {
 
 			function create_race_selection_boxes() {
@@ -118,9 +122,28 @@
 				return hasDuplicates(races);
 			}
 
+			function update_layouts() {
+				n_players = $("#n_players").val();
+				$("#layout").html("");
+				for (layout_filename in LAYOUT_INFO) {
+					if ($.inArray(n_players, LAYOUT_INFO[layout_filename].supports_players) > -1) {
+						$("#layout").append("<option value='" + layout_filename + "'>" 
+							+ LAYOUT_INFO[layout_filename].layout_name + "</option>");
+					}
+				}
+			}
+
+			var layouts_get = $.get("./cgi-bin/ti4-map-generator-cgi.py",
+				{get_layouts: true});
+			layouts_get.done(function(data) {
+				LAYOUT_INFO = data;
+				update_layouts();
+			});
+
 
 			create_race_selection_boxes();
 			$('#n_players').change(create_race_selection_boxes);
+			$('#n_players').change(update_layouts);
 			$('input[name=race_selection_method]').click(create_race_selection_boxes);
 
 			$("#generate_form").submit(function(event) {
