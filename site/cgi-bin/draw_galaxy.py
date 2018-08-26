@@ -109,13 +109,23 @@ def create_galaxy_string_from_grid(grid):
         string += " "
     return string
 
+def resize_crop_to(image, max_dim):
+    cur_width, cur_height = image.size
+    factor = 0
+    if cur_width > cur_height:
+        factor = 900.0 / cur_width
+    else:
+        factor = 900.0 / cur_height
+    image = image.resize((int(cur_width * factor), int(cur_height * factor)), Image.BICUBIC)
+    return image.crop(image.getbbox())
+
+
 
 def create_galaxy_image(galaxy_json_filename, output_filename, box=(900, 900)):
     json_file = open(galaxy_json_filename)
     galaxy = json.load(json_file)
     image = create_galaxy_image_from_grid(galaxy["grid"])
-    image = image.resize(box, Image.BICUBIC)
-    image = image.crop(image.getbbox())
+    image = resize_crop_to(image, 900)
     image.save(output_filename, "PNG")
     return create_galaxy_string_from_grid(galaxy["grid"])
 
