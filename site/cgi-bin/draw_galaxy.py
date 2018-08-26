@@ -61,12 +61,11 @@ def calc_text_coords(i, j, n_row_offset):
 
 
 def create_galaxy_image_from_grid(grid):
-    output = Image.new('RGBA',
-                       (int(TILE_IMAGE_X * (6 * 0.75 + 1)), TILE_IMAGE_Y * 7),
-                       (0, 0, 0, 0))
-    txt = Image.new('RGBA',
-                    (int(TILE_IMAGE_X * (6 * 0.75 + 1)), TILE_IMAGE_Y * 7),
-                    (255, 255, 255, 0))
+    width = TILE_IMAGE_X * len(grid)
+    max_length = max([len(tmp) for tmp in grid])
+    height = TILE_IMAGE_Y * max_length + TILE_IMAGE_Y / 2 * len(grid) / 2
+    output = Image.new('RGBA', (width, height), (0, 0, 0, 0))
+    txt = Image.new('RGBA', (width, height), (255, 255, 255, 0))
     d = ImageDraw.Draw(txt)
     font = ImageFont.truetype(FONT_PATH, size=int(TILE_IMAGE_Y/3))
     for i in range(len(grid)):
@@ -74,8 +73,8 @@ def create_galaxy_image_from_grid(grid):
             tile_image = get_tile_image(grid[i][j])
             if (tile_image is None):
                 continue
-            coords = calc_coordinates(i, j, 3)
-            text_coords = calc_text_coords(i, j, 3)
+            coords = calc_coordinates(i, j, len(grid) / 2)
+            text_coords = calc_text_coords(i, j, len(grid) / 2)
             output.paste(tile_image, coords, tile_image)
             if DISPLAY_TYPE == DisplayType.NumbersOnly:
                 text_color = (0, 0, 0, 255)
@@ -100,7 +99,10 @@ def create_galaxy_image_from_grid(grid):
 def create_galaxy_string_from_grid(grid):
     string = ""
     for c in SPIRAL_PATTERN:
-        val = grid[c[0]][c[1]]
+        try:
+            val = grid[c[0]][c[1]]
+        except IndexError:
+            break
         if(val < 0):
             val = 0
         string += "%d" % val
