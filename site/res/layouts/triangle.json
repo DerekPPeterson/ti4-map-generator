@@ -20,5 +20,6 @@
 	},
 	"fixed_tiles": {
 		"18": [3, 3]
-	}
+	},
+	"default": "true"
 }

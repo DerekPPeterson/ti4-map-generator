@@ -127,12 +127,17 @@
 			function update_layouts() {
 				n_players = $("#n_players").val();
 				$("#layout").html("");
+				var default_value;
 				for (layout_filename in LAYOUT_INFO) {
 					if ($.inArray(n_players, LAYOUT_INFO[layout_filename].supports_players) > -1) {
-						$("#layout").append("<option value='" + layout_filename + "'>" 
+						var added_option = $("#layout").append("<option value='" + layout_filename + "'>" 
 							+ LAYOUT_INFO[layout_filename].layout_name + "</option>");
+						if (LAYOUT_INFO[layout_filename].default === "true") {
+							default_value = layout_filename;
+						}
 					}
 				}
+				$("#layout").val(default_value);
 			}
 
 			var layouts_get = $.get("./cgi-bin/ti4-map-generator-cgi.py",

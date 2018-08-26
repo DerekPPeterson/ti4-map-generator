@@ -124,6 +124,13 @@ def return_layouts():
             for n_players in layout["home_tile_positions"]:
                 layouts[layout_file]["supports_players"].append(n_players)
 
+            layouts[layout_file]["default"] = "false"
+            try:
+                if (layout["default"] == "true"):
+                    layouts[layout_file]["default"] = "true"
+            except:
+                pass
+
     sys.stdout.write("Content-Type: application/json")
     sys.stdout.write("\n")
     sys.stdout.write("\n")
