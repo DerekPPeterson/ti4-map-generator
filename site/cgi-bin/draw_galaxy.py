@@ -1,6 +1,7 @@
-from PIL import Image, ImageFont, ImageDraw
+from PIL import Image, ImageFont, ImageDraw, ImageFilter
 import json
 import os
+import math
 from enum import Enum
 
 class DisplayType(Enum):
@@ -59,8 +60,60 @@ def calc_text_coords(i, j, n_row_offset):
         return (coords[0] + TILE_IMAGE_X / 8,
                 coords[1] + TILE_IMAGE_Y / 3)
 
+def normalize_angle(angle):
+    while angle <= -180:
+        angle += 360
+    while angle > 180:
+        angle -= 360
+    return angle
 
-def create_galaxy_image_from_grid(grid):
+def min_angle_difference(a, b):
+    r = a - b
+    return (r + 180) % 360 - 180
+
+def draw_warp_lines(grid, warp_connections, image):
+    angles_directions = {
+        -30: [1, 1],
+        -90: [0, 1],
+        -150: [-1, 0],
+        150: [-1, -1],
+        90: [0, -1],
+        30: [1, 0]
+    }
+
+    for wc in warp_connections:
+        l = ImageDraw.Draw(image)
+        line_coords = [tuple(calc_coordinates(gl[0], gl[1], len(grid) / 2)) for gl in wc]
+        direct_angle = -math.degrees(math.atan2(line_coords[1][1] - line_coords[0][1],
+                                               line_coords[1][0] - line_coords[0][0]))
+        angles_diffs = [[a, abs(min_angle_difference(direct_angle, a))] for a in angles_directions]
+        angles_diffs.sort(key=lambda x: x[1])
+        for angle in [x[0] for x in angles_diffs]:
+            if (not grid[wc[0][0] + angles_directions[angle][0]]
+                        [wc[0][1] + angles_directions[angle][1]]):
+                wc[0][0] += float(angles_directions[angle][0]) * 0.45
+                wc[0][1] += float(angles_directions[angle][1]) * 0.45
+                break
+
+        direct_angle = normalize_angle(direct_angle + 180)
+        angles_diffs = [[a, abs(min_angle_difference(direct_angle, a))] for a in angles_directions]
+        angles_diffs.sort(key=lambda x: x[1])
+        for angle in [x[0] for x in angles_diffs]:
+            if (not grid[wc[1][0] + angles_directions[angle][0]]
+                        [wc[1][1] + angles_directions[angle][1]]):
+                wc[1][0] += float(angles_directions[angle][0]) * 0.45
+                wc[1][1] += float(angles_directions[angle][1]) * 0.45
+                break
+
+        line_coords = [tuple(calc_coordinates(gl[0], gl[1], len(grid) / 2)) for gl in wc]
+        line_coords = [(c[0] + TILE_IMAGE_X / 2, c[1] + TILE_IMAGE_Y / 2) for c in line_coords]
+        l.line(line_coords, (50, 50, 100, 255), int(TILE_IMAGE_X / 10))
+        l.line(line_coords, (255, 255, 255, 255), int(TILE_IMAGE_X / 30))
+
+
+def create_galaxy_image_from_json_data(galaxy):
+    grid = galaxy["grid"]
+
     width = TILE_IMAGE_X * len(grid)
     max_length = max([len(tmp) for tmp in grid])
     height = TILE_IMAGE_Y * max_length + TILE_IMAGE_Y / 2 * len(grid) / 2
@@ -68,6 +121,15 @@ def create_galaxy_image_from_grid(grid):
     txt = Image.new('RGBA', (width, height), (255, 255, 255, 0))
     d = ImageDraw.Draw(txt)
     font = ImageFont.truetype(FONT_PATH, size=int(TILE_IMAGE_Y/3))
+
+    try:
+        warp_connections = galaxy["warp_connections"]
+        draw_warp_lines(grid, warp_connections, output)
+        output = output.filter(ImageFilter.SMOOTH_MORE)
+        output = output.filter(ImageFilter.BLUR)
+    except:
+        pass
+
     for i in range(len(grid)):
         for j in range(len(grid[0])):
             tile_image = get_tile_image(grid[i][j])
@@ -91,6 +153,7 @@ def create_galaxy_image_from_grid(grid):
                 if DISPLAY_TYPE != DisplayType.TileImagesOnly:
                     d.text(text_coords, str(grid[i][j]), font=font, fill=text_color)
             #d.text(text_coords, "{},{}".format(i, j), font=font, fill=text_color)
+
 
     output = Image.alpha_composite(output, txt)
     return output
@@ -124,7 +187,7 @@ def resize_crop_to(image, max_dim):
 def create_galaxy_image(galaxy_json_filename, output_filename, box=(900, 900)):
     json_file = open(galaxy_json_filename)
     galaxy = json.load(json_file)
-    image = create_galaxy_image_from_grid(galaxy["grid"])
+    image = create_galaxy_image_from_json_data(galaxy)
     image = resize_crop_to(image, 900)
     image.save(output_filename, "PNG")
     return create_galaxy_string_from_grid(galaxy["grid"])
