@@ -106,6 +106,9 @@ typedef struct Location
         new_location.j = this->j + a.j;
         return new_location;
     }
+    bool operator==(Location a) {
+        return i == a.i && j == a.j;
+    }
 } Location;
 
 
@@ -261,6 +264,7 @@ class Galaxy
     map<Wormhole, list<Tile*>> wormhole_systems;
     Tile boundary_tile; // used for inaccesable locations in the grid
     map<string, float> evaluate_options;
+    list<Location[2]> warp_connections;
 
     void import_tiles(string tile_filename);
     struct layout_info import_layout(string layout_filename, int n_players);
@@ -492,6 +496,17 @@ struct layout_info Galaxy::import_layout(string layout_filename, int n_players)
         info.start_positions.push_back({i, j});
     }
 
+    if (layout_json.find("warp_connections") != layout_json.end()) {
+        for (auto & j_connection : layout_json["warp_connections"]) {
+            Location warp_connection[2];
+            warp_connection[0].i = j_connection[0][0];
+            warp_connection[0].j = j_connection[0][1];
+            warp_connection[1].i = j_connection[1][0];
+            warp_connection[1].j = j_connection[1][1];
+            warp_connections.push_back(warp_connection);
+        }
+    }
+
     info.n_blue = layout_json["movable_tile_counts"][to_string(n_players)]["blue"];
     info.n_red = layout_json["movable_tile_counts"][to_string(n_players)]["red"];
     return info;
@@ -662,6 +677,15 @@ list<Tile*> Galaxy::get_adjacent(Tile *t1)
             if (it != t1) {
                 adjacent.push_back(it);
             }
+        }
+    }
+
+    // Check warp lane connections
+    for (auto warp_connection : warp_connections) {
+        if (warp_connection[0] == start_location) {
+            adjacent.push_back(get_tile_at(warp_connection[1]));
+        } else if (warp_connection[1] == start_location) {
+            adjacent.push_back(get_tile_at(warp_connection[0]));
         }
     }
 
