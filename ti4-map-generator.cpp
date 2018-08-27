@@ -1125,6 +1125,9 @@ void Galaxy::write_json(string filename)
         }
         j["grid"].push_back(row);
     }
+    for (auto wc : warp_connections) {
+        j["warp_connections"].push_back({{wc[0].i, wc[0].j}, {wc[1].i, wc[1].j}});
+    }
     
     cerr << "Writing result to " << filename << endl;
     ofstream galaxy_output_file;
