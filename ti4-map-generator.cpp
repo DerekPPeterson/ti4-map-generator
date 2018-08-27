@@ -487,6 +487,8 @@ struct layout_info Galaxy::import_layout(string layout_filename, int n_players)
         int i = it.value().at(0);
         int j = it.value().at(1);
         place_tile({i, j}, t);
+        red_tiles.remove(t);
+        blue_tiles.remove(t);
     }
 
     struct layout_info info;
