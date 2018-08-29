@@ -371,7 +371,6 @@ Tile create_tile_from_json(json j)
 void Galaxy::import_tiles(string tile_filename)
 {
     // Parse tile json
-    // TODO error handle parse errors file not exist etc
     json tile_json;
     ifstream json_file;
     cerr << "Importing tiles from " << tile_filename << endl;
@@ -645,7 +644,6 @@ void Galaxy::print_grid() {
 }
 
 Tile* Galaxy::get_tile_at(Location l) {
-    //TODO different size?
     if (l.i < 0 or l.i >= (int) grid.size() 
             or l.j < 0 or l.j >= (int) grid[l.i].size()) {
         return NULL;
@@ -720,7 +718,6 @@ map<Tile*, float> Galaxy::distance_to_other_tiles(Tile* t1) {
         if ((not visited.count(cur_tile)) or visited[cur_tile] > distance) {
             visited[cur_tile] = distance;
 
-            // TODO: configure these?
             float move_cost;
             switch (cur_tile->get_anomaly()) {
                 case NEBULA: move_cost = 2; break;
@@ -843,7 +840,6 @@ bool Galaxy::winnu_have_clear_path_to_mecatol(double_tile_map distances)
         return 0;
     }
 
-    // TODO needs to change for non-standard board shapes if they ever get supported
     if (distances[winnu_home_tile][mecatol] <= 3) {
         return true;
     }
