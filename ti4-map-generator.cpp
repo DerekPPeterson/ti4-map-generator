@@ -2,6 +2,7 @@
 #include <fstream>
 #include <list>
 #include <map>
+#include <queue>
 #include <vector>
 #include <algorithm>
 #include <cstdlib>
@@ -708,13 +709,13 @@ struct VisitInfo {
 map<Tile*, float> Galaxy::distance_to_other_tiles(Tile* t1) {
     map<Tile*, float> visited;
 
-    list<VisitInfo> to_visit;
-    to_visit.push_back({t1, 0});
+    queue<VisitInfo> to_visit;
+    to_visit.push({t1, 0});
 
     while (to_visit.size()) {
         auto cur_tile = to_visit.front().tile;
         auto distance = to_visit.front().distance_to;
-        to_visit.pop_front();
+        to_visit.pop();
 
         // Skip home systems that are not the start system
         if (cur_tile->is_home_system() and distance > 0) {
@@ -736,7 +737,7 @@ map<Tile*, float> Galaxy::distance_to_other_tiles(Tile* t1) {
             }
 
             for (auto adjacent : get_adjacent(cur_tile)) {
-                to_visit.push_back({adjacent, distance + move_cost});
+                to_visit.push({adjacent, distance + move_cost});
             }
         }
     }
