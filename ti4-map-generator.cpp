@@ -252,6 +252,13 @@ struct layout_info
     list<Location> start_positions;
 };
 
+typedef struct Scores
+{
+    map<Tile*, float> resource_share;
+    map<Tile*, float> influence_share;
+    map<Tile*, float> tech_share;
+} Scores;
+
 class Galaxy
 {
     list<Tile> tiles;
@@ -264,7 +271,7 @@ class Galaxy
     map<Wormhole, list<Tile*>> wormhole_systems;
     Tile boundary_tile; // used for inaccesable locations in the grid
     map<string, float> evaluate_options;
-    list<Location[2]> warp_connections;
+    list<vector<Location>> warp_connections;
 
     void import_tiles(string tile_filename);
     struct layout_info import_layout(string layout_filename, int n_players);
@@ -283,6 +290,7 @@ class Galaxy
     list<Tile*> get_adjacent(Tile* t1);
     map<Tile*, float> distance_to_other_tiles(Tile* t1);
     double_tile_map calculate_stakes(double_tile_map distances);
+    Scores calculate_shares(double_tile_map stakes);
     vector<pair<Tile*, Tile*>> make_swap_list();
     bool is_wormhole_near_creuss(int near_dist, double_tile_map distances);
     bool is_supernova_near_muaat(int near_dist, double_tile_map distances);
@@ -499,7 +507,7 @@ struct layout_info Galaxy::import_layout(string layout_filename, int n_players)
 
     if (layout_json.find("warp_connections") != layout_json.end()) {
         for (auto & j_connection : layout_json["warp_connections"]) {
-            Location warp_connection[2];
+            vector<Location> warp_connection(2);
             warp_connection[0].i = j_connection[0][0];
             warp_connection[0].j = j_connection[0][1];
             warp_connection[1].i = j_connection[1][0];
@@ -769,13 +777,6 @@ double_tile_map Galaxy::calculate_stakes(double_tile_map distances)
     return stakes;
 }
 
-typedef struct Scores
-{
-    map<Tile*, float> resource_share;
-    map<Tile*, float> influence_share;
-    map<Tile*, float> tech_share;
-} Scores;
-
 float average(list<float> l) 
 {
     float sum = 0;
@@ -957,50 +958,8 @@ int Galaxy::count_adjacent_wormholes()
     return count;
 }
 
-float Galaxy::evaluate_grid() {
-    
-    double_tile_map distances_from_home_systems;
-
-    for (auto home_system : home_systems) {
-        distances_from_home_systems[home_system] = distance_to_other_tiles(home_system);
-    }
-    double_tile_map stakes = calculate_stakes(distances_from_home_systems);
-
-    //for (auto it1 : stakes) {
-    //    cout << "Stakes in " << it1.first->get_description_string() << endl;
-    //    for (auto it2 : it1.second) {
-    //        cout << "\t" << it2.second << " " << it2.first->get_description_string() << endl;
-    //    }
-    //}
-  
-   
-    float score = 0;
-
-    score += count_home_systems_without_planets() * 10;
-    score += count_adjacent_home_systems() * 5;
-    score += count_adjacent_anomalies();
-    score += count_adjacent_wormholes() * 2;
-
-    // Some race specific options if requested. the large score penalty ensures
-    // that these will be satisfied if possible
-    if (evaluate_options["muaat_gets_supernova"]) {
-        if (not is_supernova_near_muaat(evaluate_options["muaat_gets_supernova"], 
-                    distances_from_home_systems)) {
-            score += 10;
-        }
-    }
-    if (evaluate_options["creuss_gets_wormhole"]) {
-        if (not is_wormhole_near_creuss(evaluate_options["creuss_gets_wormhole"], 
-                    distances_from_home_systems)) {
-            score += 10;
-        }
-    }
-    if (evaluate_options["winnu_have_clear_path_to_mecatol"]) {
-        if (not winnu_have_clear_path_to_mecatol( distances_from_home_systems)) {
-            score += 10;
-        }
-    }
-
+Scores Galaxy::calculate_shares(double_tile_map stakes)
+{
     Scores scores;
 
     float total_resources = 0;
@@ -1031,19 +990,60 @@ float Galaxy::evaluate_grid() {
         total_influence += influence_share;
     }
 
-    //for (auto hs: home_systems) {
-    //    printf("%2.1f %2.1f %s\n", scores.resource_share[hs], scores.influence_share[hs],
-    //            hs->get_description_string().c_str());
-    //}
-    //printf("%2.1f %2.1f %s\n", total_resources, total_influence, "Totals");
-    //printf("%0.3f %0.3f %03f %s\n", coefficient_of_variation(resource_shares), 
-    //        coefficient_of_variation(influence_shares), 
-    //        coefficient_of_variation(tech_shares), 
-    //        "CVs");
+    return scores;
+}
+
+template<class K, class V>
+list<V> get_values_of_map(map<K, V> a)
+{
+    list<V> ret;
+    for (auto elem : a) {
+        ret.push_back(elem.second);
+    }
+    return ret;
+}
+
+float Galaxy::evaluate_grid() {
     
-    score += coefficient_of_variation(resource_shares) * evaluate_options["resource_weight"]
-           + coefficient_of_variation(influence_shares) * evaluate_options["influence_weight"]
-           + coefficient_of_variation(tech_shares) * evaluate_options["tech_weight"];
+    double_tile_map distances_from_home_systems;
+
+    for (auto home_system : home_systems) {
+        distances_from_home_systems[home_system] = distance_to_other_tiles(home_system);
+    }
+    double_tile_map stakes = calculate_stakes(distances_from_home_systems);
+
+    float score = 0;
+
+    score += count_home_systems_without_planets() * 10;
+    score += count_adjacent_home_systems() * 5;
+    score += count_adjacent_anomalies();
+    score += count_adjacent_wormholes() * 2;
+
+    // Some race specific options if requested. the large score penalty ensures
+    // that these will be satisfied if possible
+    if (evaluate_options["muaat_gets_supernova"]) {
+        if (not is_supernova_near_muaat(evaluate_options["muaat_gets_supernova"], 
+                    distances_from_home_systems)) {
+            score += 10;
+        }
+    }
+    if (evaluate_options["creuss_gets_wormhole"]) {
+        if (not is_wormhole_near_creuss(evaluate_options["creuss_gets_wormhole"], 
+                    distances_from_home_systems)) {
+            score += 10;
+        }
+    }
+    if (evaluate_options["winnu_have_clear_path_to_mecatol"]) {
+        if (not winnu_have_clear_path_to_mecatol( distances_from_home_systems)) {
+            score += 10;
+        }
+    }
+
+    Scores scores = calculate_shares(stakes);
+
+    score += coefficient_of_variation(get_values_of_map(scores.resource_share)) * evaluate_options["resource_weight"]
+           + coefficient_of_variation(get_values_of_map(scores.influence_share)) * evaluate_options["influence_weight"]
+           + coefficient_of_variation(get_values_of_map(scores.tech_share)) * evaluate_options["tech_weight"];
 
     return score;
 }
