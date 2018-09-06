@@ -1,3 +1,4 @@
 [submodule "backward-cpp"]
 	path = backward-cpp
 	url = https://github.com/bombela/backward-cpp.git
+	ignore=dirty
