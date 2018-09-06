@@ -10,4 +10,6 @@ compile_commands.json
 gmon.out
 ti4-map-generator
 /site/generated/*
+galaxy.json
+galaxy.png
 
