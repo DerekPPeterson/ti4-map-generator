@@ -10,13 +10,28 @@ class DisplayType(Enum):
     NumbersOnly = 3
 
 
+# Hardcoded constants
 TILE_IMAGES = {}
 TILE_DIR = "../res"
 TILE_IMAGE_X = 198
 TILE_IMAGE_Y = 172
 FONT_PATH = "../res/Slider Regular.ttf"
 DISPLAY_TYPE = DisplayType.TileImagesWithNumbers
-SPIRAL_PATTERN = [[3,2], [4,3], [4,4], [3,4], [2,3], [2,2], [3,1], [4,2], [5,3], [5,4], [5,5], [4,5], [3,5], [2,4], [1,3], [1,2], [1,1], [2,1], [3,0], [4,1], [5,2], [6,3], [6,4], [6,5], [6,6], [5,6], [4,6], [3,6], [2,5], [1,4], [0,3], [0,2], [0,1], [0,0], [1,0], [2,0]]
+
+
+# Returns list of locations in each ring around mecatol rex
+def spiral_pattern(centre):
+    cur_point = centre
+    directions = [[1, 1], [0, 1], [-1, 0], [-1, -1], [0, -1], [1, 0]]
+    ring = 0
+    while True:
+        cur_point[1] -= 1  # move up one to next ring
+        ring += 1
+        for direction in directions:
+            for i in range(ring):
+                yield cur_point
+                cur_point[0] += direction[0]
+                cur_point[1] += direction[1]
 
 
 def get_tile_image(number):
@@ -159,17 +174,31 @@ def create_galaxy_image_from_json_data(galaxy):
     return output
 
 
-def create_galaxy_string_from_grid(grid):
+def create_galaxy_string_from_grid(grid, centre):
     string = ""
-    for c in SPIRAL_PATTERN:
+    n_tiles = sum(sum(n != 0 for n in row) for row in grid)
+    n_visted = 0
+
+    for c in spiral_pattern(centre):
         try:
             val = grid[c[0]][c[1]]
+            if val != 0:
+                n_visted += 1
         except IndexError:
-            break
+            # if the spiral pattern goes outside the grid enter a 0
+            val = 0
+
+        # Blank home systems are in grid as negative numbers, but output them
+        # as 0
         if(val < 0):
             val = 0
         string += "%d" % val
         string += " "
+
+        # Done after visiting all spots in grid (except for mecatol)
+        if n_visted == n_tiles - 1:
+            break
+
     return string
 
 def resize_crop_to(image, max_dim):
@@ -190,7 +219,7 @@ def create_galaxy_image(galaxy_json_filename, output_filename, box=(900, 900)):
     image = create_galaxy_image_from_json_data(galaxy)
     image = resize_crop_to(image, 900)
     image.save(output_filename, "PNG")
-    return create_galaxy_string_from_grid(galaxy["grid"])
+    return create_galaxy_string_from_grid(galaxy["grid"], galaxy["mecatol"])
 
 
 if __name__ == "__main__":

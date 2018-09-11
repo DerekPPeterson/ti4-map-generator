@@ -1127,6 +1127,7 @@ void Galaxy::write_json(string filename)
     for (auto wc : warp_connections) {
         j["warp_connections"].push_back({{wc[0].i, wc[0].j}, {wc[1].i, wc[1].j}});
     }
+    j["mecatol"] = {mecatol->get_location().i, mecatol->get_location().j};
     
     cerr << "Writing result to " << filename << endl;
     ofstream galaxy_output_file;

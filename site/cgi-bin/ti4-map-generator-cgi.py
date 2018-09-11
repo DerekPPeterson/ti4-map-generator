@@ -14,6 +14,21 @@ from glob import glob
 GENERATED_DIR = "../generated"
 LAYOUTS_DIR = "../res/layouts"
 
+def spiral_pattern(centre):
+    cur_point = centre
+    directions = [[1, 1], [0, 1], [-1, 0], [-1, -1], [0, -1], [1, 1]]
+    ring = 0
+    while True:
+        cur_point[1] -= 1; # move up one to next ring
+        ring += 1
+        for direction in directions:
+            for i in range(ring):
+                yield cur_point
+                cur_point[0] == direction[0]
+                cur_point[1] == direction[1]
+
+
+
 
 def random_string(N):
     return ''.join(random.choice(string.ascii_uppercase) for _ in range(N))
@@ -137,7 +152,7 @@ def return_layouts():
     sys.stdout.write(json.dumps(layouts))
 
 
-def return_main_page(args):
+def return_galaxy_image_div(args):
     print("Content-Type: text/html;charset=utf-8\n")
 
     galaxy_img_name, seed, string = generate_galaxy(args)
@@ -146,13 +161,14 @@ def return_main_page(args):
     print('<img src="./cgi-bin/ti4-map-generator-cgi.py?image=%s"/>' % galaxy_img_name)
     print('<br>Map String (for use with <a href="https://steamcommunity.com/sharedfiles/filedetails/?id=1466689117">this tabletop simulator mod</a>):<br>' + string)
 
-cgitb.enable()
-args = cgi.FieldStorage()
-if "image" in args:
-    return_image(args["image"].value)
-elif "get_layouts" in args:
-    return_layouts()
-else:
-    return_main_page(args)
+if __name__ == "__main__":
+    cgitb.enable()
+    args = cgi.FieldStorage()
+    if "image" in args:
+        return_image(args["image"].value)
+    elif "get_layouts" in args:
+        return_layouts()
+    else:
+        return_galaxy_image_div(args)
 
-2
+
