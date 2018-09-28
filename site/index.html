@@ -9,9 +9,10 @@
 </head>
 
 <body>
-	<h1>TWILIGHT IMPERIUM IV BALANCED MAP GENERATOR</h1>
-	<div id="controls_and_image">
-	<div id="text_div" style="float:left">
+  <div class="title">
+    <h1>TWILIGHT IMPERIUM IV BALANCED MAP GENERATOR</h1>
+  </div>
+	<div id="text_div" class="rounded_background">
 		<form id="generate_form" action="./cgi-bin/ti4-map-generator-cgi.py">
 			<h3>Player/Layout Settings</h3>
 			<label>Number of Players:
@@ -34,8 +35,8 @@
 			<div id="race_select_div"></div>
 
 			<h3>Display</h3>
-			<label><input type="radio" id="display_type" name="display_type" value="tile_images_with_numbers" checked>Tile Images With Numbers</label>
-			<label><input type="radio" id="display_type" name="display_type" value="tile_images_only" >Tile Images Only</label>
+      <label><input type="radio" id="display_type" name="display_type" value="tile_images_with_numbers" checked>Tile Images With Numbers</label><br>
+      <label><input type="radio" id="display_type" name="display_type" value="tile_images_only" >Tile Images Only</label><br>
 			<label><input type="radio" id="display_type" name="display_type" value="numbers_only">Tile Numbers Only</label>
 
 			<h3>Optimization Settings</h3>
@@ -54,15 +55,15 @@
 
 			<label title="Makes sure that all A & B wormholes will be present in the created galaxy"><input type="CHECKBOX" id="include_all_wormholes" name="include_all_wormholes" checked>Include all wormholes</label><br>
 
-			<h3><input type="submit" value="Generate"></h3><br><br>
+			<h3><input type="submit" value="Generate"></h3>
 		</form>
 	</div>
 
-	<div id="galaxy_image_div" style="float:left; overflow: wrap"></div>
-	</div>
+	<div id="galaxy_image_div" ></div>
 
-	<div id="info_div" style="float: left; clear: both;">
-	  <a href="https://github.com/DerekPPeterson/ti4-map-generator"> Source on GitHub</a>
+	<div id="info_div" class="rounded_background">
+    <a href="https://github.com/DerekPPeterson/ti4-map-generator">Source on GitHub</a><br>
+	  <a href="https://boardgamegeek.com/thread/2019714/ti4-map-generator">BGG Thread</a>
 	</div>
 			
 	<script text/javascript>

@@ -157,9 +157,11 @@ def return_galaxy_image_div(args):
 
     galaxy_img_name, seed, string = generate_galaxy(args)
 
-    print('<div align="right">Seed: %d</div><br>' % seed)
     print('<img src="./cgi-bin/ti4-map-generator-cgi.py?image=%s"/>' % galaxy_img_name)
-    print('<br>Map String (for use with <a href="https://steamcommunity.com/sharedfiles/filedetails/?id=1466689117">this tabletop simulator mod</a>):<br>' + string)
+    print('<div id="result_info" class="rounded_background">Seed: %d<br>' % seed)
+    print('Map String '
+          '(for use with <a href="https://steamcommunity.com/sharedfiles/filedetails/?id=1466689117">this tabletop simulator mod</a>):'
+          '<br>{map_string}</div>'.format(map_string=string))
 
 if __name__ == "__main__":
     cgitb.enable()
