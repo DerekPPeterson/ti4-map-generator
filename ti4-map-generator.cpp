@@ -423,6 +423,8 @@ void Galaxy::import_tiles(string tile_filename)
     mecatol = &tiles.back();
 
     cerr << "Loaded " << tiles.size() << " tiles" << endl;
+    cerr << "\tblue: " << blue_tiles.size() << " " << endl;
+    cerr << "\tred:" << red_tiles.size() << " tiles" << endl;
 }
 
 list<Tile*> get_tile_pointers(list<Tile*> tiles, string numbers)
@@ -745,7 +747,6 @@ map<Tile*, float> Galaxy::distance_to_other_tiles(Tile* t1) {
     return visited;
 }
 
-
 double_tile_map Galaxy::calculate_stakes(double_tile_map distances)
 {
     double_tile_map stakes;
@@ -754,12 +755,31 @@ double_tile_map Galaxy::calculate_stakes(double_tile_map distances)
         if (t->is_home_system()) {
             continue;
         }
+
+        float min_dist = 1000;
+        for (auto hs : home_systems) {
+            try {
+                if (distances[hs][t] < min_dist) {
+                    min_dist = distances[hs][t];
+                }
+            }
+            catch (out_of_range) {
+                // Systems like supernovas will not have any path to them
+            }
+        }
+
         map<Tile*, float> stakes_in_system;
         for (auto hs : home_systems) {
             try {
-                stakes_in_system[hs] = 1.0 / pow(distances[hs].at(t), 2);
+                if (min_dist < 3 and evaluate_options["pie_slice_assignment"]) {
+                    // Systems close to home systems will be assigned entirely
+                    // to those close home systems
+                    stakes_in_system[hs] = distances[hs][t] == min_dist ? 1 : 0;
+                } else {
+                    // Systems far away will b split according to inverse distance ^ 2
+                    stakes_in_system[hs] = 1.0 / pow(distances[hs][t], 2);
+                }
             } catch (out_of_range) {
-                // Systems like supernovas will not have any stake in them
                 stakes_in_system[hs] = 0;
             }
         }
@@ -1150,6 +1170,7 @@ int main(int argc, char *argv[]) {
             ("dummy_homes", "use blank home systems (default)")
             ("random_homes", "use random race home systems")
             ("choose_homes", "use with --races option")
+            ("pie_slice_assignment", "Assign systems <= 2 spaces away from a home systems entirely to the(those) home systems <=2 away")
             ("r,races", "list of home system tile numbers like so \"1 2 5...\"", cxxopts::value<string>()->default_value("6"))
             ("mandatory_tiles", "List of mandatory tiles to include", cxxopts::value<string>())
             ("creuss_gets_wormhole", "If creuss in game place a wormhole within x distance of it", cxxopts::value<int>()->default_value("1"))
@@ -1222,6 +1243,10 @@ int main(int argc, char *argv[]) {
             result["influence_weight"].as<float>());
     galaxy.set_evaluate_option("tech_weight", 
             result["tech_weight"].as<float>());
+
+    if (result.count("pie_slice_assignment")) {
+        galaxy.set_evaluate_option("pie_slice_assignment", 1);
+    }
 
     galaxy.optimize_grid();
     score = galaxy.evaluate_grid();

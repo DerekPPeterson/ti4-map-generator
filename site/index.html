@@ -35,11 +35,13 @@
 			<div id="race_select_div"></div>
 
 			<h3>Display</h3>
-      <label><input type="radio" id="display_type" name="display_type" value="tile_images_with_numbers" checked>Tile Images With Numbers</label><br>
-      <label><input type="radio" id="display_type" name="display_type" value="tile_images_only" >Tile Images Only</label><br>
+            <label><input type="radio" id="display_type" name="display_type" value="tile_images_with_numbers" checked>Tile Images With Numbers</label><br>
+            <label><input type="radio" id="display_type" name="display_type" value="tile_images_only" >Tile Images Only</label><br>
 			<label><input type="radio" id="display_type" name="display_type" value="numbers_only">Tile Numbers Only</label>
 
 			<h3>Optimization Settings</h3>
+            <label title="Assign systems <=2 spaces away from a home system or systems entirely to the closest home system. If there are multiple equally close then divide the value evenly"><input type="checkbox" id="pie_slice_assignment" checked>Assign value based on pie slices:</label><br><br>
+
 			<label title="Set random seed. The same setting with the same random seed will generate an identical map layout. Leave blank for an automatic random seed">Random Seed:<input type="number" id="seed"></label><br><br>
 
 			<label title="Relative importance of resource equity when evaluating map quality" style="width: 200px" for="resource_weight">Resource Weighting:</label>
@@ -179,6 +181,7 @@
 						layout: $("#layout").val(),
 						races: get_selected_races(),
 						star_by_star: $("#star_by_star").prop("checked"),
+						pie_slice_assignment: $("#pie_slice_assignment").prop("checked"),
 						creuss_gets_wormhole: $("#creuss_gets_wormhole").prop("checked"),
 						muaat_gets_supernova: $("#muaat_gets_supernova").prop("checked"),
 						winnu_clear_path_to_mecatol: $("#winnu_clear_path_to_mecatol").prop("checked"),

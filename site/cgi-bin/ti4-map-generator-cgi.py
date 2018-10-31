@@ -81,6 +81,9 @@ def generate_galaxy(args):
     if "star_by_star" in args and args["star_by_star"].value == "true":
         cmd += ["--star_by_star"]
 
+    if "pie_slice_assignment" in args and args["pie_slice_assignment"].value == "true":
+        cmd += ["--pie_slice_assignment"]
+
     if "creuss_gets_wormhole" in args and args["creuss_gets_wormhole"].value == "true":
         cmd += ["--creuss_gets_wormhole", "1"]
     elif args["creuss_gets_wormhole"].value == "false":
