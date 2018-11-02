@@ -273,6 +273,7 @@ class Galaxy
     Tile *mecatol;
     list<Tile*> home_systems;
     list<Tile*> movable_systems;
+    list<Tile*> placed_tiles;
     list<Tile*> red_tiles;
     list<Tile*> blue_tiles;
     map<Wormhole, list<Tile*>> wormhole_systems;
@@ -280,6 +281,7 @@ class Galaxy
     map<string, float> evaluate_options;
     list<vector<Location>> warp_connections;
     Scores scores;
+    double_tile_map stakes;
 
     void import_tiles(string tile_filename);
     struct layout_info import_layout(string layout_filename, int n_players);
@@ -506,6 +508,7 @@ struct layout_info Galaxy::import_layout(string layout_filename, int n_players)
         place_tile({i, j}, t);
         red_tiles.remove(t);
         blue_tiles.remove(t);
+        placed_tiles.push_back(t);
     }
 
     struct layout_info info;
@@ -585,9 +588,10 @@ void Galaxy::initialize_grid(struct layout_info layout_info, string mandatory_ti
     // Place home systems (Star by star means that home systems can be anywhere)
     if (not star_by_star) {
         auto sp_it = layout_info.start_positions.begin();
-        for (auto it : get_shuffled_list(home_systems)) {
-            place_tile(*sp_it, it);
+        for (auto hs : get_shuffled_list(home_systems)) {
+            place_tile(*sp_it, hs);
             sp_it++;
+            placed_tiles.push_back(hs);
         }
     }
 
@@ -642,6 +646,9 @@ void Galaxy::initialize_grid(struct layout_info layout_info, string mandatory_ti
             }
         }
     }
+
+    placed_tiles.insert(placed_tiles.begin(), 
+            movable_systems.begin(), movable_systems.end());
 }
 
 
@@ -757,7 +764,7 @@ map<Tile*, float> Galaxy::distance_to_other_tiles(Tile* t1) {
 double_tile_map Galaxy::calculate_stakes(double_tile_map distances)
 {
     double_tile_map stakes;
-    for (auto t : movable_systems) {
+    for (auto t : placed_tiles) {
         // Other races have no stakes in each-other's home systems
         if (t->is_home_system()) {
             continue;
@@ -988,6 +995,8 @@ int Galaxy::count_adjacent_wormholes()
 
 Scores Galaxy::calculate_shares(double_tile_map stakes)
 {
+    Scores scores;
+
     float total_resources = 0;
     float total_influence = 0;
     list<float> resource_shares;
@@ -1036,7 +1045,7 @@ float Galaxy::evaluate_grid() {
     for (auto home_system : home_systems) {
         distances_from_home_systems[home_system] = distance_to_other_tiles(home_system);
     }
-    double_tile_map stakes = calculate_stakes(distances_from_home_systems);
+    stakes = calculate_stakes(distances_from_home_systems);
 
     float score = 0;
 
@@ -1065,7 +1074,7 @@ float Galaxy::evaluate_grid() {
         }
     }
 
-    Scores scores = calculate_shares(stakes);
+    scores = calculate_shares(stakes);
 
     score += coefficient_of_variation(get_values_of_map(scores.resource_share)) * evaluate_options["resource_weight"]
            + coefficient_of_variation(get_values_of_map(scores.influence_share)) * evaluate_options["influence_weight"]
@@ -1110,7 +1119,7 @@ void Galaxy::optimize_grid()
 
     int n_swaps = 0;
     // Set to a very high value to test all swaps
-    int swaps_until_quit = 100000;
+    int swaps_until_quit = 10000;
 
     do {
         better_score_found = false;
@@ -1142,6 +1151,7 @@ void Galaxy::write_json(string filename)
 {
     json j;
 
+    // Record tile hex grid layout
     j["grid"] = json::array();
     for (int i = 0; i < (int) grid.size(); i++) {
         auto row = json::array();
@@ -1151,15 +1161,25 @@ void Galaxy::write_json(string filename)
         j["grid"].push_back(row);
     }
 
+    // Record any warp connectiongs
     for (auto wc : warp_connections) {
         j["warp_connections"].push_back({{wc[0].i, wc[0].j}, {wc[1].i, wc[1].j}}); }
 
-    //j["scores"] = nullptr;
+    // Record the overal scores and stakes in each system
     for (auto it : scores.resource_share) {
         auto hs = it.first;
         j["scores"][hs->get_race()]["resource"] = scores.resource_share[hs];
         j["scores"][hs->get_race()]["influence"] = scores.influence_share[hs];
         j["scores"][hs->get_race()]["tech"] = scores.tech_share[hs];
+
+        for (auto it2 : stakes) {
+            Tile* t = it2.first;
+            float stake = stakes[t][hs];
+            if (stake == 0.0f) {
+                continue;
+            }
+            j["stakes"][hs->get_race()][to_string(t->get_number())] = stake;
+        }
     }
 
     j["mecatol"] = {mecatol->get_location().i, mecatol->get_location().j};
