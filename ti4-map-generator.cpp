@@ -140,8 +140,14 @@ class Tile
     Location get_location();
     int get_resource_value();
     int get_influence_value();
+    string get_race();
     bool is_home_system();
 };
+
+string Tile::get_race()
+{
+    return race;
+}
 
 int Tile::get_resource_value()
 {
@@ -273,6 +279,7 @@ class Galaxy
     Tile boundary_tile; // used for inaccesable locations in the grid
     map<string, float> evaluate_options;
     list<vector<Location>> warp_connections;
+    Scores scores;
 
     void import_tiles(string tile_filename);
     struct layout_info import_layout(string layout_filename, int n_players);
@@ -559,7 +566,7 @@ void Galaxy::chosen_home_tiles(string chosen) {
 void Galaxy::dummy_home_tiles(int n) {
     home_systems.clear();
     for (int i = 0; i < n; i++) {
-        Tile new_tile = Tile(-i - 1, "Home System");
+        Tile new_tile = Tile(-i - 1, "Home System " + to_string(i + 1));
         tiles.push_back(new_tile);
         home_systems.push_back(&tiles.back());
     }
@@ -981,8 +988,6 @@ int Galaxy::count_adjacent_wormholes()
 
 Scores Galaxy::calculate_shares(double_tile_map stakes)
 {
-    Scores scores;
-
     float total_resources = 0;
     float total_influence = 0;
     list<float> resource_shares;
@@ -1136,6 +1141,7 @@ void Galaxy::optimize_grid()
 void Galaxy::write_json(string filename)
 {
     json j;
+
     j["grid"] = json::array();
     for (int i = 0; i < (int) grid.size(); i++) {
         auto row = json::array();
@@ -1144,9 +1150,18 @@ void Galaxy::write_json(string filename)
         }
         j["grid"].push_back(row);
     }
+
     for (auto wc : warp_connections) {
-        j["warp_connections"].push_back({{wc[0].i, wc[0].j}, {wc[1].i, wc[1].j}});
+        j["warp_connections"].push_back({{wc[0].i, wc[0].j}, {wc[1].i, wc[1].j}}); }
+
+    //j["scores"] = nullptr;
+    for (auto it : scores.resource_share) {
+        auto hs = it.first;
+        j["scores"][hs->get_race()]["resource"] = scores.resource_share[hs];
+        j["scores"][hs->get_race()]["influence"] = scores.influence_share[hs];
+        j["scores"][hs->get_race()]["tech"] = scores.tech_share[hs];
     }
+
     j["mecatol"] = {mecatol->get_location().i, mecatol->get_location().j};
     
     cerr << "Writing result to " << filename << endl;
