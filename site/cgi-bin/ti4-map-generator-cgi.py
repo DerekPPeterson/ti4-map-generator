@@ -120,7 +120,7 @@ def generate_galaxy(args):
     string = draw_galaxy.create_galaxy_image(
         os.path.join(GENERATED_DIR, galaxy_json_filename),
         os.path.join(GENERATED_DIR, galaxy_png_filename))
-    return galaxy_png_filename, seed, string
+    return galaxy_png_filename, galaxy_json_filename, seed, string
 
 
 def return_image(image):
@@ -158,13 +158,65 @@ def return_layouts():
 def return_galaxy_image_div(args):
     print("Content-Type: text/html;charset=utf-8\n")
 
-    galaxy_img_name, seed, string = generate_galaxy(args)
+    galaxy_img_name, galaxy_json_filename, seed, string = generate_galaxy(args)
 
     print('<img src="./cgi-bin/ti4-map-generator-cgi.py?image=%s"/>' % galaxy_img_name)
     print('<div id="result_info" class="rounded_background">Seed: %d<br>' % seed)
+    print('<button onclick="display_stats(\'%s\')">Display Balance Details</button><br>' % galaxy_json_filename)
     print('Map String '
           '(for use with <a href="https://steamcommunity.com/sharedfiles/filedetails/?id=1466689117">this tabletop simulator mod</a>):'
           '<br>{map_string}</div>'.format(map_string=string))
+
+
+def create_html_table(id, data):
+    table_str = '<table id="%s">' % id;
+    for row in data:
+        table_str += "<tr>"
+        for elem in row:
+            table_str += "<td>" + str(elem) + "</td>"
+        table_str += "</tr>"
+    table_str += "</table>"
+    return table_str
+
+
+def return_stats(args):
+    print("Content-Type: text/html;charset=utf-8\n")
+
+    galaxy_json_filename = os.path.join(GENERATED_DIR, args["get_stats"].value)
+
+    json_file = open(galaxy_json_filename)
+    galaxy = json.load(json_file)
+    json_file.close()
+
+    races = galaxy["scores"].keys()
+    races.sort()
+
+    score_data = [["Race", "Resource Share", "Influence Share", "Tech Share"]]
+    for race in races:
+        score_data.append([
+            race,
+            "{:.3f}".format(galaxy["scores"][race]["resource"]),
+            "{:.3f}".format(galaxy["scores"][race]["influence"]),
+            "{:.3f}".format(galaxy["scores"][race]["tech"])
+        ])
+    print "<h3>Resource shares by race</h3>"
+    print create_html_table("score_stats", score_data)
+
+    stake_data = [["Tile"] + [r for r in races]]
+    tiles = galaxy["stakes"].keys()
+    tiles.sort()
+    for tile in tiles:
+        row = [tile]
+        for race in races:
+            try:
+                stake = galaxy["stakes"][tile][race];
+                row.append("{:.1f}%".format(stake * 100))
+            except KeyError:
+                row.append(0.0)
+        stake_data.append(row)
+    print "<h3>Race stakes in each system</h3>"
+    print create_html_table("stake_stats", stake_data)
+
 
 if __name__ == "__main__":
     cgitb.enable()
@@ -173,6 +225,8 @@ if __name__ == "__main__":
         return_image(args["image"].value)
     elif "get_layouts" in args:
         return_layouts()
+    elif "get_stats" in args:
+        return_stats(args)
     else:
         return_galaxy_image_div(args)
 

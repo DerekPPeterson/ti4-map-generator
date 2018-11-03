@@ -158,15 +158,18 @@ def create_galaxy_image_from_json_data(galaxy):
             else:
                 text_color = (255, 255, 255, 255)
 
-            if grid[i][j] > 0:
-                outline_thickness = 2
-                if DISPLAY_TYPE == DisplayType.TileImagesWithNumbers:
-                    d.text((text_coords[0] - outline_thickness, text_coords[1] + outline_thickness), str(grid[i][j]), font=font, fill=(0, 0, 0, 100))
-                    d.text((text_coords[0] - outline_thickness, text_coords[1] - outline_thickness), str(grid[i][j]), font=font, fill=(0, 0, 0, 100))
-                    d.text((text_coords[0] + outline_thickness, text_coords[1] + outline_thickness), str(grid[i][j]), font=font, fill=(0, 0, 0, 100))
-                    d.text((text_coords[0] + outline_thickness, text_coords[1] - outline_thickness), str(grid[i][j]), font=font, fill=(0, 0, 0, 100))
-                if DISPLAY_TYPE != DisplayType.TileImagesOnly:
-                    d.text(text_coords, str(grid[i][j]), font=font, fill=text_color)
+            label = str(grid[i][j])
+            if grid[i][j] < 0:
+                label = "HS" + str(-grid[i][j])
+
+            outline_thickness = 2
+            if DISPLAY_TYPE == DisplayType.TileImagesWithNumbers:
+                d.text((text_coords[0] - outline_thickness, text_coords[1] + outline_thickness), label, font=font, fill=(0, 0, 0, 100))
+                d.text((text_coords[0] - outline_thickness, text_coords[1] - outline_thickness), label, font=font, fill=(0, 0, 0, 100))
+                d.text((text_coords[0] + outline_thickness, text_coords[1] + outline_thickness), label, font=font, fill=(0, 0, 0, 100))
+                d.text((text_coords[0] + outline_thickness, text_coords[1] - outline_thickness), label, font=font, fill=(0, 0, 0, 100))
+            if DISPLAY_TYPE != DisplayType.TileImagesOnly:
+                d.text(text_coords, label, font=font, fill=text_color)
             #d.text(text_coords, "{},{}".format(i, j), font=font, fill=text_color)
 
 

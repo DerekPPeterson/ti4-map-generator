@@ -62,6 +62,8 @@
 	</div>
 
 	<div id="galaxy_image_div" ></div>
+	
+	<div id="galaxy_stats_div" class=rounded_background></div>
 
 	<div id="info_div" class="rounded_background">
     <a href="https://github.com/DerekPPeterson/ti4-map-generator">Source on GitHub</a><br>
@@ -70,7 +72,22 @@
 			
 	<script text/javascript>
 		var LAYOUT_INFO;
+
+		function display_stats(galaxy_json_filename) {
+			var get = $.get("./cgi-bin/ti4-map-generator-cgi.py", 
+				{
+					get_stats: galaxy_json_filename
+				});
+			get.done(function(data) {
+				$("#galaxy_stats_div").html(data);
+				$("#galaxy_stats_div").show();
+			});
+
+		}
+
 		$("#document").ready(function() {
+
+			$("#galaxy_stats_div").hide();
 
 			function create_race_selection_boxes() {
 				// Create race select boxes
@@ -164,6 +181,8 @@
 
 			$("#generate_form").submit(function(event) {
 				event.preventDefault();
+
+				$("#galaxy_stats_div").hide();
 			
 				if (race_duplicates()) {
 					alert("Cannot have duplicate races");

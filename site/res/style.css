@@ -68,3 +68,20 @@ img {
 input[type=submit] {
   width: 20em;  height: 2em;
 }
+
+table {
+	border-collapse: collapse;
+}
+
+table, th, td {
+	border: 1px solid black;
+}
+
+th, td {
+    padding: 15px;
+    text-align: right;
+}
+
+th {
+    font-family: 'ti_heading_font';
+}

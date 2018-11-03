@@ -770,6 +770,13 @@ double_tile_map Galaxy::calculate_stakes(double_tile_map distances)
             continue;
         }
 
+        // Skip systems with nothing of value in them
+        if (not (t->get_resource_value() or 
+                    t->get_influence_value() or 
+                    t->get_techcolor())) {
+            continue;
+        }
+
         float min_dist = 1000;
         for (auto hs : home_systems) {
             try {
@@ -785,9 +792,12 @@ double_tile_map Galaxy::calculate_stakes(double_tile_map distances)
         map<Tile*, float> stakes_in_system;
         for (auto hs : home_systems) {
             try {
-                if (min_dist < 3 and evaluate_options["pie_slice_assignment"]) {
+                if (min_dist < 3 
+                        and evaluate_options["pie_slice_assignment"]
+                        and t != mecatol) {
                     // Systems close to home systems will be assigned entirely
                     // to those close home systems
+                    // Never do this for mecatol rex
                     stakes_in_system[hs] = distances[hs][t] == min_dist ? 1 : 0;
                 } else {
                     // Systems far away will b split according to inverse distance ^ 2
@@ -1172,13 +1182,14 @@ void Galaxy::write_json(string filename)
         j["scores"][hs->get_race()]["influence"] = scores.influence_share[hs];
         j["scores"][hs->get_race()]["tech"] = scores.tech_share[hs];
 
-        for (auto it2 : stakes) {
-            Tile* t = it2.first;
+    }
+
+    for (auto it : stakes) {
+        for (auto it2: it.second) {
+            Tile* t = it.first;
+            Tile* hs = it2.first;
             float stake = stakes[t][hs];
-            if (stake == 0.0f) {
-                continue;
-            }
-            j["stakes"][hs->get_race()][to_string(t->get_number())] = stake;
+            j["stakes"][to_string(t->get_number())][hs->get_race()] = stake;
         }
     }
 
