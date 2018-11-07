@@ -141,9 +141,16 @@ class Tile
     Location get_location();
     int get_resource_value();
     int get_influence_value();
+    list<Planet> get_planets();
     string get_race();
     bool is_home_system();
 };
+
+list<Planet> Tile::get_planets()
+{
+    return planets;
+}
+
 
 string Tile::get_race()
 {
@@ -305,6 +312,7 @@ class Galaxy
     double_tile_map calculate_stakes(double_tile_map distances);
     Scores calculate_shares(double_tile_map stakes);
     float apply_penalties(double_tile_map distances);
+    float calculate_trait_variance();
     vector<pair<Tile*, Tile*>> make_swap_list();
     bool is_wormhole_near_creuss(int near_dist, double_tile_map distances);
     bool is_supernova_near_muaat(int near_dist, double_tile_map distances);
@@ -1105,6 +1113,43 @@ float Galaxy::apply_penalties(double_tile_map distances)
     return total_penalty;
 }
 
+int num_planets_with_trait(Tile* tile, PlanetTrait trait)
+{
+    int count = 0;
+    for (auto p : tile->get_planets()) {
+        if (trait == p.trait) {
+            count ++;
+        }
+    }
+    return count;
+}
+
+float Galaxy::calculate_trait_variance()
+{
+    list<float> adjacent_counts;
+
+    for (auto tile : placed_tiles) {
+        for (auto planet : tile->get_planets()) {
+            if (planet.trait == NO_TRAIT) {
+                continue;
+            }
+
+            for (auto trait : {CULTURAL, INDUSTRIAL, HAZARDOUS}) {
+                float count = 0;
+                if (planet.trait == trait) {
+                    count -= 1;
+                }
+                count += num_planets_with_trait(tile, trait);
+                for (auto adjacent_tile : get_adjacent(tile)) {
+                    count += num_planets_with_trait(adjacent_tile, trait);
+                }
+                adjacent_counts.push_back(count);
+            }
+        }
+    }
+    return coefficient_of_variation(adjacent_counts);
+}
+
 float Galaxy::evaluate_grid() {
     
     double_tile_map distances_from_home_systems;
@@ -1119,6 +1164,8 @@ float Galaxy::evaluate_grid() {
     scores = calculate_shares(stakes);
 
     score += apply_penalties(distances_from_home_systems);
+
+    score += calculate_trait_variance();
 
     score += coefficient_of_variation(get_values_of_map(scores.resource_share)) * evaluate_options["resource_weight"]
            + coefficient_of_variation(get_values_of_map(scores.influence_share)) * evaluate_options["influence_weight"]
