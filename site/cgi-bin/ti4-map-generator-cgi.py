@@ -217,6 +217,10 @@ def return_stats(args):
     print "<h3>Race stakes in each system</h3>"
     print create_html_table("stake_stats", stake_data)
 
+    print "<h3>Debug galaxy json data</h3>"
+    print json.dumps(galaxy)
+
+
 
 if __name__ == "__main__":
     cgitb.enable()

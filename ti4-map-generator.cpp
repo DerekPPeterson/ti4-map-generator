@@ -1,6 +1,7 @@
 #include <iostream>
 #include <fstream>
 #include <list>
+#include <set>
 #include <map>
 #include <queue>
 #include <vector>
@@ -264,6 +265,8 @@ typedef struct Scores
     map<Tile*, float> resource_share;
     map<Tile*, float> influence_share;
     map<Tile*, float> tech_share;
+
+    map<string, float> penalties;
 } Scores;
 
 class Galaxy
@@ -297,10 +300,11 @@ class Galaxy
     int count_adjacent_wormholes();
     Tile* get_tile_at(Location location);
     Tile* get_tile_by_number(int n);
-    list<Tile*> get_adjacent(Tile* t1);
+    list<Tile*> get_adjacent(Tile* t1, bool go_through_wormholes = true);
     map<Tile*, float> distance_to_other_tiles(Tile* t1);
     double_tile_map calculate_stakes(double_tile_map distances);
     Scores calculate_shares(double_tile_map stakes);
+    float apply_penalties(double_tile_map distances);
     vector<pair<Tile*, Tile*>> make_swap_list();
     bool is_wormhole_near_creuss(int near_dist, double_tile_map distances);
     bool is_supernova_near_muaat(int near_dist, double_tile_map distances);
@@ -680,12 +684,14 @@ Tile* Galaxy::get_tile_at(Location l) {
     return tile;
 }
 
-list<Tile*> Galaxy::get_adjacent(Tile *t1)
+list<Tile*> Galaxy::get_adjacent(Tile *t1, bool go_through_wormholes)
 {
     list<Location> directions = {
         {0,1}, {1,1}, {1, 0}, {0, -1}, {-1, -1}, {-1, 0}
     };
-    list<Tile*> adjacent;
+
+    // Use a set so that we only return unique adjacent tiles
+    set<Tile*> adjacent;
 
     // Get tiles directly adjecent
     Location start_location = t1->get_location();
@@ -693,14 +699,14 @@ list<Tile*> Galaxy::get_adjacent(Tile *t1)
         Location new_location = start_location + it;
         Tile* potential_adjacent = get_tile_at(new_location);
         if (potential_adjacent) {
-            adjacent.push_back(potential_adjacent);
+            adjacent.insert(potential_adjacent);
         }
     }
     // Get connected wormholes
-    if (t1->get_wormhole()) {
+    if (go_through_wormholes and t1->get_wormhole()) {
         for(Tile* it : wormhole_systems[t1->get_wormhole()]) {
             if (it != t1) {
-                adjacent.push_back(it);
+                adjacent.insert(it);
             }
         }
     }
@@ -708,13 +714,18 @@ list<Tile*> Galaxy::get_adjacent(Tile *t1)
     // Check warp lane connections
     for (auto warp_connection : warp_connections) {
         if (warp_connection[0] == start_location) {
-            adjacent.push_back(get_tile_at(warp_connection[1]));
+            adjacent.insert(get_tile_at(warp_connection[1]));
         } else if (warp_connection[1] == start_location) {
-            adjacent.push_back(get_tile_at(warp_connection[0]));
+            adjacent.insert(get_tile_at(warp_connection[0]));
         }
     }
 
-    return adjacent;
+    list<Tile*> adjacent_list;
+    for (auto t : adjacent) {
+        adjacent_list.push_back(t);
+    }
+
+    return adjacent_list;
 };
 
 struct VisitInfo {
@@ -858,7 +869,7 @@ bool Galaxy::is_supernova_near_muaat(int near_dist, double_tile_map distances)
         return 0;
     }
 
-    for (auto t : movable_systems) {
+    for (auto t : placed_tiles) {
         if (t->get_anomaly() == SUPERNOVA) {
             if (distances[muaat_home_tile][t] <= near_dist) {
                 return true;
@@ -909,7 +920,7 @@ bool Galaxy::is_wormhole_near_creuss(int near_dist, double_tile_map distances)
         return 0;
     }
 
-    for (auto t : movable_systems) {
+    for (auto t : placed_tiles) {
         if (t->get_wormhole() and t->get_wormhole() != DELTA) {
             if (distances[creuss_home_tile][t] <= near_dist) {
                 return true;
@@ -952,9 +963,9 @@ int Galaxy::count_home_systems_without_planets()
             if (a->get_resource_value() || a->get_influence_value()) {
                 n_planet_tiles_adjacent++;
             }
-            if (not n_planet_tiles_adjacent) {
-                count++;
-            }
+        }
+        if (not n_planet_tiles_adjacent) {
+            count++;
         }
     }
     return count;
@@ -976,7 +987,7 @@ int Galaxy::count_adjacent_home_systems()
 int Galaxy::count_adjacent_anomalies()
 {
     int count = 0;
-    for (auto t : movable_systems) {
+    for (auto t : placed_tiles) {
         if (t->get_anomaly() and t->get_anomaly() != EMPTY) {
             for (auto a : get_adjacent(t)) {
                 if (a->get_anomaly() and t->get_anomaly() != EMPTY) {
@@ -991,9 +1002,9 @@ int Galaxy::count_adjacent_anomalies()
 int Galaxy::count_adjacent_wormholes()
 {
     int count = 0;
-    for (auto t : movable_systems) {
+    for (auto t : placed_tiles) {
         if (t->get_wormhole()) {
-            for (auto a : get_adjacent(t)) {
+            for (auto a : get_adjacent(t, false)) {
                 if (t->get_wormhole() == a->get_wormhole()) {
                     count++;
                 }
@@ -1017,7 +1028,7 @@ Scores Galaxy::calculate_shares(double_tile_map stakes)
         float resource_share = 0;
         float influence_share = 0;
         float tech_share = 0;
-        for (auto tile : movable_systems) {
+        for (auto tile : placed_tiles) {
             resource_share += tile->get_resource_value() * stakes[tile][home_system];
             influence_share += tile->get_influence_value() * stakes[tile][home_system];
             tech_share += tile->get_techcolor() ? stakes[tile][home_system] : 0;
@@ -1048,6 +1059,52 @@ list<V> get_values_of_map(map<K, V> a)
     return ret;
 }
 
+float Galaxy::apply_penalties(double_tile_map distances)
+{
+    float total_penalty = 0;
+
+    map<string, float> penalties;
+
+    float penalty;
+    penalty = count_home_systems_without_planets() * 10;
+    scores.penalties["home systems without planets (x10)"] = penalty;
+    total_penalty += penalty;
+    penalty = count_adjacent_home_systems() * 5;
+    scores.penalties["adjacent home systems (x5)"] = penalty;
+    total_penalty += penalty;
+    penalty = count_adjacent_anomalies();
+    scores.penalties["adjacent anomalies (x1)"] = penalty;
+    total_penalty += penalty;
+    penalty = count_adjacent_wormholes() * 2;
+    scores.penalties["adjacent wormholes (x2)"] = penalty;
+    total_penalty += penalty;
+
+    // Some race specific options if requested. the large total_penalty penalty ensures
+    // that these will be satisfied if possible
+    if (evaluate_options["muaat_gets_supernova"]) {
+        if (not is_supernova_near_muaat(evaluate_options["muaat_gets_supernova"], 
+                    distances)) {
+            total_penalty += 10;
+            scores.penalties["muaat does not have supernova (x10)"] = 10;
+        }
+    }
+    if (evaluate_options["creuss_gets_wormhole"]) {
+        if (not is_wormhole_near_creuss(evaluate_options["creuss_gets_wormhole"], 
+                    distances)) {
+            total_penalty += 10;
+            scores.penalties["cruess does not have wormhole (x10)"] = 10;
+        }
+    }
+    if (evaluate_options["winnu_have_clear_path_to_mecatol"]) {
+        if (not winnu_have_clear_path_to_mecatol( distances)) {
+            total_penalty += 10;
+            scores.penalties["winnu does not have a clear path to mecatol (x10)"] = 10;
+        }
+    }
+    
+    return total_penalty;
+}
+
 float Galaxy::evaluate_grid() {
     
     double_tile_map distances_from_home_systems;
@@ -1059,32 +1116,9 @@ float Galaxy::evaluate_grid() {
 
     float score = 0;
 
-    score += count_home_systems_without_planets() * 10;
-    score += count_adjacent_home_systems() * 5;
-    score += count_adjacent_anomalies();
-    score += count_adjacent_wormholes() * 2;
-
-    // Some race specific options if requested. the large score penalty ensures
-    // that these will be satisfied if possible
-    if (evaluate_options["muaat_gets_supernova"]) {
-        if (not is_supernova_near_muaat(evaluate_options["muaat_gets_supernova"], 
-                    distances_from_home_systems)) {
-            score += 10;
-        }
-    }
-    if (evaluate_options["creuss_gets_wormhole"]) {
-        if (not is_wormhole_near_creuss(evaluate_options["creuss_gets_wormhole"], 
-                    distances_from_home_systems)) {
-            score += 10;
-        }
-    }
-    if (evaluate_options["winnu_have_clear_path_to_mecatol"]) {
-        if (not winnu_have_clear_path_to_mecatol( distances_from_home_systems)) {
-            score += 10;
-        }
-    }
-
     scores = calculate_shares(stakes);
+
+    score += apply_penalties(distances_from_home_systems);
 
     score += coefficient_of_variation(get_values_of_map(scores.resource_share)) * evaluate_options["resource_weight"]
            + coefficient_of_variation(get_values_of_map(scores.influence_share)) * evaluate_options["influence_weight"]
@@ -1194,6 +1228,8 @@ void Galaxy::write_json(string filename)
     }
 
     j["mecatol"] = {mecatol->get_location().i, mecatol->get_location().j};
+
+    j["penalties"] = scores.penalties;
     
     cerr << "Writing result to " << filename << endl;
     ofstream galaxy_output_file;
