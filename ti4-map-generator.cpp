@@ -312,7 +312,7 @@ class Galaxy
     double_tile_map calculate_stakes(double_tile_map distances);
     Scores calculate_shares(double_tile_map stakes);
     float apply_penalties(double_tile_map distances);
-    float calculate_trait_variance();
+    float calculate_trait_variance(double_tile_map stakes);
     vector<pair<Tile*, Tile*>> make_swap_list();
     bool is_wormhole_near_creuss(int near_dist, double_tile_map distances);
     bool is_supernova_near_muaat(int near_dist, double_tile_map distances);
@@ -1037,6 +1037,9 @@ Scores Galaxy::calculate_shares(double_tile_map stakes)
         float influence_share = 0;
         float tech_share = 0;
         for (auto tile : placed_tiles) {
+            if (tile->is_home_system()) {
+                continue;
+            }
             resource_share += tile->get_resource_value() * stakes[tile][home_system];
             influence_share += tile->get_influence_value() * stakes[tile][home_system];
             tech_share += tile->get_techcolor() ? stakes[tile][home_system] : 0;
@@ -1124,30 +1127,24 @@ int num_planets_with_trait(Tile* tile, PlanetTrait trait)
     return count;
 }
 
-float Galaxy::calculate_trait_variance()
+float Galaxy::calculate_trait_variance(double_tile_map stakes)
 {
-    list<float> adjacent_counts;
+    list<float> counts;
 
-    for (auto tile : placed_tiles) {
-        for (auto planet : tile->get_planets()) {
-            if (planet.trait == NO_TRAIT) {
-                continue;
-            }
-
-            for (auto trait : {CULTURAL, INDUSTRIAL, HAZARDOUS}) {
-                float count = 0;
-                if (planet.trait == trait) {
-                    count -= 1;
+    for (auto hs : home_systems)
+    {
+        int count = 0;
+        for (PlanetTrait trait : {CULTURAL, HAZARDOUS, INDUSTRIAL}) {
+            for (auto t : placed_tiles) {
+                if (t->is_home_system()) {
+                    continue;
                 }
-                count += num_planets_with_trait(tile, trait);
-                for (auto adjacent_tile : get_adjacent(tile)) {
-                    count += num_planets_with_trait(adjacent_tile, trait);
-                }
-                adjacent_counts.push_back(count);
+                count += num_planets_with_trait(t, trait) * stakes[t][hs];
             }
         }
+        counts.push_back(count);
     }
-    return coefficient_of_variation(adjacent_counts);
+    return coefficient_of_variation(counts);
 }
 
 float Galaxy::evaluate_grid() {
@@ -1165,7 +1162,7 @@ float Galaxy::evaluate_grid() {
 
     score += apply_penalties(distances_from_home_systems);
 
-    score += calculate_trait_variance();
+    score += calculate_trait_variance(stakes) * evaluate_options["trait_weight"];
 
     score += coefficient_of_variation(get_values_of_map(scores.resource_share)) * evaluate_options["resource_weight"]
            + coefficient_of_variation(get_values_of_map(scores.influence_share)) * evaluate_options["influence_weight"]
@@ -1307,6 +1304,7 @@ int main(int argc, char *argv[]) {
             ("winnu_have_clear_path_to_mecatol", "If winnu in game give them a clear path to mecatol", cxxopts::value<int>()->default_value("1"))
             ("resource_weight", "Relative weight of resource variance", cxxopts::value<float>()->default_value("1.0"))
             ("influence_weight", "Relative weight of infuence variance", cxxopts::value<float>()->default_value("1.0"))
+            ("trait_weight", "Relative weight of planet trait variance", cxxopts::value<float>()->default_value("0.3"))
             ("tech_weight", "Relative weight of tech specialty variance", cxxopts::value<float>()->default_value("1.0"))
             ;
     auto result = options.parse(argc, argv);
@@ -1372,6 +1370,8 @@ int main(int argc, char *argv[]) {
             result["influence_weight"].as<float>());
     galaxy.set_evaluate_option("tech_weight", 
             result["tech_weight"].as<float>());
+    galaxy.set_evaluate_option("tech_weight", 
+            result["trait_weight"].as<float>());
 
     if (result.count("pie_slice_assignment")) {
         galaxy.set_evaluate_option("pie_slice_assignment", 1);

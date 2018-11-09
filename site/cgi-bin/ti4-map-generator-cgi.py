@@ -108,7 +108,8 @@ def generate_galaxy(args):
         cmd += ["--influence_weight", str(float(args["influence_weight"].value))]
     if "tech_weight" in args:
         cmd += ["--tech_weight", str(float(args["tech_weight"].value))]
-
+    if "trait_weight" in args:
+        cmd += ["--trait_weight", str(float(args["trait_weight"].value))]
 
     p = subprocess.Popen(cmd,
         stdout=subprocess.PIPE, stderr=subprocess.PIPE)

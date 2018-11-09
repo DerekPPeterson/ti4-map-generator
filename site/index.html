@@ -45,11 +45,13 @@
 			<label title="Set random seed. The same setting with the same random seed will generate an identical map layout. Leave blank for an automatic random seed">Random Seed:<input type="number" id="seed"></label><br><br>
 
 			<label title="Relative importance of resource equity when evaluating map quality" style="width: 200px" for="resource_weight">Resource Weighting:</label>
-			<input type="range" min="0" max="5" step="0.1" value="1" class="slider" id="resource_weight"><br>
+            <input type="range" min="0" max="5" step="0.1" value="1" class="slider" id="resource_weight"><span id="resource_weight_value"></span><br>
 			<label title="Relative importance of influence equity when evaluating map quality" style="width: 200px"for="influence_weight">Influence Weighting:</label>
-			<input type="range" min="0" max="5" step="0.1" value="1" class="slider" id="influence_weight"><br>
+			<input type="range" min="0" max="5" step="0.1" value="1" class="slider" id="influence_weight"><span id="influence_weight_value"></span><br>
 			<label title="Relative importance of tech specialty equity when evaluating map quality"style="width: 200px"for="tech_weight">Tech Specialty Weighting:</label>
-			<input type="range" min="0" max="5" step="0.1" value="1" class="slider" id="tech_weight"><br><br>
+			<input type="range" min="0" max="5" step="0.1" value="1" class="slider" id="tech_weight"><span id="tech_weight_value"></span><br><br>
+			<label title="Relative importance of planet trait equity"style="width: 200px"for="trait_weight">Planet Trait Weighting</label>
+            <input type="range" min="0" max="5" step="0.1" value="0.3" class="slider" id="trait_weight"><span id="trait_weight_value"></span><br><br>
 
 			<label title="Creuss will have at least one wormhole tile next to it's home system, provided both Creuss and a wormhole tile are in the map"><input type="CHECKBOX" id="creuss_gets_wormhole" name="creuss_gets_wormhole" checked>Give the Ghosts of Creuss a Wormhole</label><br>
 			<label title="Muaat will have the supernova placed next to its home system, provided both Muatt and a supernova are in the map"><input type="CHECKBOX" id="muaat_gets_supernova" name="muaat_gets_supernova" checked>Give the Embers of Muaat a Supernova</label><br>
@@ -166,6 +168,22 @@
 				$("#layout").val(default_value);
 			}
 
+            function set_slider_update(slider_id) {
+                var slider = $("#" + slider_id);
+                var value_div = $("#" + slider_id + "_value");
+
+                var x = parseFloat(slider.val());
+                value_div.html(x.toFixed(1));
+                slider.change(function() {
+                    var x = parseFloat(slider.val());
+                    value_div.html(x.toFixed(1));
+                });
+            }
+            set_slider_update("resource_weight");
+            set_slider_update("influence_weight");
+            set_slider_update("tech_weight");
+            set_slider_update("trait_weight");
+
 			var layouts_get = $.get("./cgi-bin/ti4-map-generator-cgi.py",
 				{get_layouts: true});
 			layouts_get.done(function(data) {
@@ -208,6 +226,7 @@
 						resource_weight: $("#resource_weight").val(),
 						influence_weight: $("#influence_weight").val(),
 						tech_weight: $("#tech_weight").val(),
+						trait_weight: $("#trait_weight").val(),
 						seed: $("#seed").val()
 					});
 				get.done(function(data) {
