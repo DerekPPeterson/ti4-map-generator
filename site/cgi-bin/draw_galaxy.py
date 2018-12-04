@@ -3,6 +3,7 @@ import json
 import os
 import math
 from enum import Enum
+from copy import deepcopy
 
 class DisplayType(Enum):
     TileImagesWithNumbers = 1
@@ -61,8 +62,8 @@ def get_tile_image(number):
 
 def calc_coordinates(i, j, n_row_offset):
     start_offset = n_row_offset * (TILE_IMAGE_Y) / 2
-    out_x = (TILE_IMAGE_X * 3 / 4) * i
-    out_y = start_offset + j * TILE_IMAGE_Y - i * (TILE_IMAGE_Y/2)
+    out_x = int(TILE_IMAGE_X * 3 / 4) * i
+    out_y = int(start_offset + j * TILE_IMAGE_Y - i * (TILE_IMAGE_Y/2))
     return (out_x, out_y)
 
 
@@ -70,58 +71,85 @@ def calc_text_coords(i, j, n_row_offset):
     coords = calc_coordinates(i, j, n_row_offset)
     if DISPLAY_TYPE == DisplayType.NumbersOnly:
         return (coords[0] + int(TILE_IMAGE_X / 3.5),
-                coords[1] + TILE_IMAGE_Y / 3)
+                coords[1] + int(TILE_IMAGE_Y / 3))
     else:
-        return (coords[0] + TILE_IMAGE_X / 8,
-                coords[1] + TILE_IMAGE_Y / 3)
+        return (coords[0] + int(TILE_IMAGE_X / 8),
+                coords[1] + int(TILE_IMAGE_Y / 3))
 
-def normalize_angle(angle):
-    while angle <= -180:
-        angle += 360
-    while angle > 180:
-        angle -= 360
-    return angle
 
 def min_angle_difference(a, b):
-    r = a - b
-    return (r + 180) % 360 - 180
+    r = abs(a - b)
+    return math.fmod((r + math.pi) , 2 * math.pi) - math.pi
+
+def calculate_line_end_adjust_angle(grid, wc):
+    wc = deepcopy(wc)
+    #print wc
+
+    angles_directions = {
+        math.radians(-30): [1, 1],
+        math.radians(-90): [0, 1],
+        math.radians(-150): [-1, 0],
+        math.radians(150): [-1, -1],
+        math.radians(90): [0, -1],
+        math.radians(30): [1, 0]
+    }
+
+    line_coords = [tuple(calc_coordinates(gl[0], gl[1], len(grid) / 2)) for gl in wc]
+    # angle from centre of one tile to centre of other
+    direct_angle = -(math.atan2(line_coords[1][1] - line_coords[0][1],
+                                line_coords[1][0] - line_coords[0][0]))
+    #print direct_angle
+    # figure out which edges have no tiles beside them
+    valid_angles = []
+    for angle in angles_directions:
+        try:
+            if (not grid[wc[0][0] + angles_directions[angle][0]]
+                        [wc[0][1] + angles_directions[angle][1]]):
+                valid_angles.append(angle)
+        except IndexError:
+            valid_angles.append(angle)
+    #print(valid_angles)
+
+    # figure out the minimum difference between the tile edge
+    angles_diffs = [[a, abs(min_angle_difference(direct_angle, a))] for a in valid_angles]
+    angles_diffs.sort(key=lambda x: x[1])
+    #print angles_diffs
+
+    angle = 0;
+    vec = [0, 0]
+    if (len(angles_diffs) > 1 and angles_diffs[0][1] < math.pi/3 and angles_diffs[1][1] < math.pi/3):
+        angle = math.atan2(0.5 * (math.sin(angles_diffs[0][0]) +
+                                  math.sin(angles_diffs[1][0])),
+                           0.5 * (math.cos(angles_diffs[0][0]) +
+                                  math.cos(angles_diffs[1][0])))
+
+    else:
+        angle = angles_diffs[0][0]
+    #print angle
+    return angle
+
 
 def draw_warp_lines(grid, warp_connections, image):
-    angles_directions = {
-        -30: [1, 1],
-        -90: [0, 1],
-        -150: [-1, 0],
-        150: [-1, -1],
-        90: [0, -1],
-        30: [1, 0]
-    }
 
     for wc in warp_connections:
         l = ImageDraw.Draw(image)
-        line_coords = [tuple(calc_coordinates(gl[0], gl[1], len(grid) / 2)) for gl in wc]
-        direct_angle = -math.degrees(math.atan2(line_coords[1][1] - line_coords[0][1],
-                                               line_coords[1][0] - line_coords[0][0]))
-        angles_diffs = [[a, abs(min_angle_difference(direct_angle, a))] for a in angles_directions]
-        angles_diffs.sort(key=lambda x: x[1])
-        for angle in [x[0] for x in angles_diffs]:
-            if (not grid[wc[0][0] + angles_directions[angle][0]]
-                        [wc[0][1] + angles_directions[angle][1]]):
-                wc[0][0] += float(angles_directions[angle][0]) * 0.45
-                wc[0][1] += float(angles_directions[angle][1]) * 0.45
-                break
 
-        direct_angle = normalize_angle(direct_angle + 180)
-        angles_diffs = [[a, abs(min_angle_difference(direct_angle, a))] for a in angles_directions]
-        angles_diffs.sort(key=lambda x: x[1])
-        for angle in [x[0] for x in angles_diffs]:
-            if (not grid[wc[1][0] + angles_directions[angle][0]]
-                        [wc[1][1] + angles_directions[angle][1]]):
-                wc[1][0] += float(angles_directions[angle][0]) * 0.45
-                wc[1][1] += float(angles_directions[angle][1]) * 0.45
-                break
+        angles = [0,0]
+        angles[0] = calculate_line_end_adjust_angle(grid, wc)
+        angles[1] = calculate_line_end_adjust_angle(grid, [wc[1], wc[0]])
 
-        line_coords = [tuple(calc_coordinates(gl[0], gl[1], len(grid) / 2)) for gl in wc]
-        line_coords = [(c[0] + TILE_IMAGE_X / 2, c[1] + TILE_IMAGE_Y / 2) for c in line_coords]
+        line_coords = [list(calc_coordinates(gl[0], gl[1], len(grid) / 2)) for gl in wc]
+        line_coords = [[c[0] + TILE_IMAGE_X / 2, c[1] + TILE_IMAGE_Y / 2] for c in line_coords]
+        #print line_coords
+
+        line_coords[0][0] += TILE_IMAGE_X / 2.5 * math.cos(angles[0])
+        line_coords[0][1] += TILE_IMAGE_Y / 2.5 * -math.sin(angles[0])
+        line_coords[1][0] += TILE_IMAGE_X / 2.5 * math.cos(angles[1])
+        line_coords[1][1] += TILE_IMAGE_Y / 2.5 * -math.sin(angles[1])
+        #print line_coords
+
+        line_coords = tuple([tuple(x) for x in line_coords])
+
         l.line(line_coords, (50, 50, 100, 255), int(TILE_IMAGE_X / 10))
         l.line(line_coords, (255, 255, 255, 255), int(TILE_IMAGE_X / 30))
 
@@ -129,9 +157,9 @@ def draw_warp_lines(grid, warp_connections, image):
 def create_galaxy_image_from_json_data(galaxy):
     grid = galaxy["grid"]
 
-    width = TILE_IMAGE_X * len(grid)
+    width = int(TILE_IMAGE_X * len(grid))
     max_length = max([len(tmp) for tmp in grid])
-    height = TILE_IMAGE_Y * max_length + TILE_IMAGE_Y / 2 * len(grid) / 2
+    height = int(TILE_IMAGE_Y * max_length + TILE_IMAGE_Y / 2 * len(grid) / 2)
     output = Image.new('RGBA', (width, height), (0, 0, 0, 0))
     txt = Image.new('RGBA', (width, height), (255, 255, 255, 0))
     d = ImageDraw.Draw(txt)
@@ -139,11 +167,12 @@ def create_galaxy_image_from_json_data(galaxy):
 
     try:
         warp_connections = galaxy["warp_connections"]
+    except KeyError:
+        pass
+    else:
         draw_warp_lines(grid, warp_connections, output)
         output = output.filter(ImageFilter.SMOOTH_MORE)
         output = output.filter(ImageFilter.BLUR)
-    except:
-        pass
 
     for i in range(len(grid)):
         for j in range(len(grid[0])):
@@ -161,6 +190,7 @@ def create_galaxy_image_from_json_data(galaxy):
             label = str(grid[i][j])
             if grid[i][j] < 0:
                 label = "HS" + str(-grid[i][j])
+            # label = "{},{}".format(i, j)
 
             outline_thickness = 2
             if DISPLAY_TYPE == DisplayType.TileImagesWithNumbers:
