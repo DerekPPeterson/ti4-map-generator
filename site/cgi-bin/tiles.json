@@ -32,7 +32,7 @@
 					"resources": 2,
 					"influence": 0,
 					"trait": "HAZARDOUS",
-					"tech": "BLUE"
+					"tech": "NO_TECH"
 				}
 			]
 		},
@@ -99,8 +99,8 @@
 			"planets": [
 				{
 					"name": "Quann",
-					"resources": 1,
-					"influence": 2,
+					"resources": 2,
+					"influence": 1,
 					"trait": "CULTURAL",
 					"tech": "NO_TECH"
 				}
