@@ -48,6 +48,11 @@ def generate_galaxy(args):
         elif args["display_type"].value == "numbers_only":
             draw_galaxy.DISPLAY_TYPE = draw_galaxy.DisplayType.NumbersOnly
 
+    if "hires" in args and args["hires"].value == "true":
+        draw_galaxy.HI_RES = True
+    else:
+        draw_galaxy.HI_RES = False
+
     n_players = 6
     if "n_players" in args:
         n_players = int(args["n_players"].value)

@@ -11,13 +11,36 @@ class DisplayType(Enum):
     NumbersOnly = 3
 
 
-# Hardcoded constants
+# Globals
+# FIXME globals are evil. need to have a better configuration setup
 TILE_IMAGES = {}
 TILE_DIR = "../res"
-TILE_IMAGE_X = 198
-TILE_IMAGE_Y = 172
+
+HI_RES = True
+
+BIG_TILE_PREFIX = "tile"
+SMALL_TILE_PREFIX = "small-tile"
+
+BIG_TILE_IMAGE_X = 900
+BIG_TILE_IMAGE_Y = 775
+SMALL_TILE_IMAGE_X = 198
+SMALL_TILE_IMAGE_Y = 172
+
+TILE_PREFIX = SMALL_TILE_PREFIX
+TILE_IMAGE_X = SMALL_TILE_IMAGE_X
+TILE_IMAGE_Y = SMALL_TILE_IMAGE_Y
+
 FONT_PATH = "../res/Slider Regular.ttf"
 DISPLAY_TYPE = DisplayType.TileImagesWithNumbers
+
+
+def enable_hi_res():
+    global TILE_PREFIX
+    global TILE_IMAGE_X
+    global TILE_IMAGE_Y
+    TILE_PREFIX = BIG_TILE_PREFIX
+    TILE_IMAGE_X = BIG_TILE_IMAGE_X
+    TILE_IMAGE_Y = BIG_TILE_IMAGE_Y
 
 
 # Returns list of locations in each ring around mecatol rex
@@ -46,11 +69,11 @@ def get_tile_image(number):
 
     if (DISPLAY_TYPE == DisplayType.NumbersOnly):
         number = 0
-        image_filename = os.path.join(TILE_DIR, "small-tilebw.png")
+        image_filename = os.path.join(TILE_DIR, TILE_PREFIX + "bw.png")
     elif (number < 0):
-        image_filename = os.path.join(TILE_DIR, "small-tilehome.png")
+        image_filename = os.path.join(TILE_DIR, TILE_PREFIX + "home.png")
     else:
-        image_filename = os.path.join(TILE_DIR, "small-tile%d.png" % number)
+        image_filename = os.path.join(TILE_DIR, TILE_PREFIX + "%d.png" % number)
 
     try:
         TILE_IMAGES[number] = Image.open(image_filename)
@@ -235,22 +258,29 @@ def create_galaxy_string_from_grid(grid, centre):
     return string
 
 def resize_crop_to(image, max_dim):
+    image = image.crop(image.getbbox())
     cur_width, cur_height = image.size
     factor = 0
+    max_dim = float(max_dim)
     if cur_width > cur_height:
-        factor = 900.0 / cur_width
+        factor = max_dim / cur_width
     else:
-        factor = 900.0 / cur_height
+        factor = max_dim / cur_height
     image = image.resize((int(cur_width * factor), int(cur_height * factor)), Image.BICUBIC)
-    return image.crop(image.getbbox())
+    return image
 
 
 
-def create_galaxy_image(galaxy_json_filename, output_filename, box=(900, 900)):
+def create_galaxy_image(galaxy_json_filename, output_filename):
     json_file = open(galaxy_json_filename)
     galaxy = json.load(json_file)
-    image = create_galaxy_image_from_json_data(galaxy)
-    image = resize_crop_to(image, 900)
+    if HI_RES:
+        enable_hi_res()
+        image = create_galaxy_image_from_json_data(galaxy)
+        image = resize_crop_to(image, 2700)
+    else:
+        image = create_galaxy_image_from_json_data(galaxy)
+        image = resize_crop_to(image, 900)
     image.save(output_filename, "PNG")
     return create_galaxy_string_from_grid(galaxy["grid"], galaxy["mecatol"])
 

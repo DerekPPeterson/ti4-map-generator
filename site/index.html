@@ -35,9 +35,10 @@
 			<div id="race_select_div"></div>
 
 			<h3>Display</h3>
-            <label><input type="radio" id="display_type" name="display_type" value="tile_images_with_numbers" checked>Tile Images With Numbers</label><br>
+            <p><label><input type="radio" id="display_type" name="display_type" value="tile_images_with_numbers" checked>Tile Images With Numbers</label><br>
             <label><input type="radio" id="display_type" name="display_type" value="tile_images_only" >Tile Images Only</label><br>
-			<label><input type="radio" id="display_type" name="display_type" value="numbers_only">Tile Numbers Only</label>
+            <label><input type="radio" id="display_type" name="display_type" value="numbers_only">Tile Numbers Only</label><br></p>
+            <p><label title="Will generate a high res image. Please only use if needed, it is more work for server."><input type="CHECKBOX" id="hires" name="hires" >High Resolution (Will increase generation time)</label><br></p>
 
 			<h3>Optimization Settings</h3>
             <label title="Assign systems <=2 spaces away from a home system or systems entirely to the closest home system. If there are multiple equally close then divide the value evenly"><input type="checkbox" id="pie_slice_assignment" checked>Assign value based on pie slices:</label><br><br>
@@ -227,6 +228,7 @@
 						influence_weight: $("#influence_weight").val(),
 						tech_weight: $("#tech_weight").val(),
 						trait_weight: $("#trait_weight").val(),
+						hires: $("#hires").prop("checked"),
 						seed: $("#seed").val()
 					});
 				get.done(function(data) {

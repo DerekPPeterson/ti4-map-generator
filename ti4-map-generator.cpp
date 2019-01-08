@@ -271,6 +271,7 @@ typedef struct Scores
 {
     map<Tile*, float> resource_share;
     map<Tile*, float> influence_share;
+    map<Tile*, float> res_inf_share;
     map<Tile*, float> tech_share;
 
     map<string, float> penalties;
@@ -1028,30 +1029,26 @@ Scores Galaxy::calculate_shares(double_tile_map stakes)
 
     float total_resources = 0;
     float total_influence = 0;
-    list<float> resource_shares;
-    list<float> influence_shares;
-    list<float> combined_shares;
-    list<float> tech_shares;
     for (auto home_system : home_systems) {
         float resource_share = 0;
         float influence_share = 0;
+        float res_inf_share = 0;
         float tech_share = 0;
         for (auto tile : placed_tiles) {
             if (tile->is_home_system()) {
                 continue;
             }
-            resource_share += tile->get_resource_value() * stakes[tile][home_system];
-            influence_share += tile->get_influence_value() * stakes[tile][home_system];
+            float res = tile->get_resource_value() * stakes[tile][home_system];
+            float inf = tile->get_influence_value() * stakes[tile][home_system];
+            resource_share += res;
+            influence_share += inf;
+            res_inf_share += max(res, inf * evaluate_options["res_value_of_inf"]);
             tech_share += tile->get_techcolor() ? stakes[tile][home_system] : 0;
         }
         scores.resource_share[home_system] = resource_share;
         scores.influence_share[home_system] = influence_share;
         scores.tech_share[home_system] = tech_share;
-
-        resource_shares.push_back(resource_share);
-        influence_shares.push_back(influence_share);
-        tech_shares.push_back(tech_share);
-        combined_shares.push_back(resource_share + influence_share);
+        scores.res_inf_share[home_system] = tech_share;
 
         total_resources += resource_share;
         total_influence += influence_share;
