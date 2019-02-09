@@ -85,8 +85,8 @@
 				},
 				{
 					"name": "Rescuilon",
-					"resources": 0,
-					"influence": 2,
+					"resources": 2,
+					"influence": 0,
 					"trait": "CULTURAL",
 					"tech": "NO_TECH"
 				}
