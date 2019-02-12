@@ -32,7 +32,7 @@
 			<label title="Home tiles will have no specific race attached"><input type="radio" id="race_selection_method" name="race_selection_method" value="dummy" checked> Blank Home Systems</label>
 			<label title="Select a random home tile for each player"><input type="radio" id="race_selection_method" name="race_selection_method" value="random"> Random Races</label>
 			<label title="Choose desired races from drop-downs"><input type="radio" id="race_selection_method" name="race_selection_method" value="chosen"> Select Races</label><br>
-			<div id="race_select_div"></div>
+			<span id="race_select_div"></span>
 
 			<h3>Display</h3>
             <p><label><input type="radio" id="display_type" name="display_type" value="tile_images_with_numbers" checked>Tile Images With Numbers</label><br>
@@ -44,6 +44,15 @@
             <label title="Assign systems <=2 spaces away from a home system or systems entirely to the closest home system. If there are multiple equally close then divide the value evenly"><input type="checkbox" id="pie_slice_assignment" checked>Assign value based on pie slices:</label><br><br>
 
 			<label title="Set random seed. The same setting with the same random seed will generate an identical map layout. Leave blank for an automatic random seed">Random Seed:<input type="number" id="seed"></label><br><br>
+
+            <label title="When checked will use the below sliders to bias valuable systems towards or away from mecatol rex">
+                <input type="CHECKBOX" id="use_ring_balance" name="use_ring_balance">Ring balancing</label><span id="ring_balance_span"><br>
+			<label title="" style="width: 200px" for="ring_balance">Outer Ring</label>
+            <input type="range" min="-1" max="1" step="0.1" value="0" class="slider" id="ring_balance"><span id="ring_balance_value"></span>
+            <label title="" for="ring_balance">Mecatol</label><br>
+			<label title="Relative weight given to ring balance vs res/inf/tech equity" style="width: 200px" for="ring_balance_weight">Ring Balance Weight</label>
+            <input type="range" min="0" max="5" step="0.1" value="1" class="slider" id="ring_balance_weight"><span id="ring_balance_weight_value"></span>
+            </span><br><br>
 
 			<label title="Relative importance of resource equity when evaluating map quality" style="width: 200px" for="resource_weight">Resource Weighting:</label>
             <input type="range" min="0" max="5" step="0.1" value="1" class="slider" id="resource_weight"><span id="resource_weight_value"></span><br>
@@ -180,10 +189,37 @@
                     value_div.html(x.toFixed(1));
                 });
             }
+
+            function ring_balance_update() {
+                if ($("#use_ring_balance").is(":checked")) {
+                    $("#ring_balance_span").show(); 
+                } else {
+                    $("#ring_balance_span").hide(); 
+                }
+            }
+            $("#use_ring_balance").change(ring_balance_update);
+            ring_balance_update();
+
+            function set_slider_update_logarithmic(slider_id) {
+                var slider = $("#" + slider_id);
+                var value_div = $("#" + slider_id + "_value");
+
+                var x = parseFloat(slider.val());
+                x = Math.pow(2, x);
+                value_div.html(x.toFixed(1));
+                slider.change(function() {
+                    var x = parseFloat(slider.val());
+                    x = Math.pow(2, x);
+                    value_div.html(x.toFixed(1));
+                });
+            }
+
             set_slider_update("resource_weight");
             set_slider_update("influence_weight");
             set_slider_update("tech_weight");
             set_slider_update("trait_weight");
+            set_slider_update("ring_balance_weight");
+            set_slider_update_logarithmic("ring_balance");
 
 			var layouts_get = $.get("./cgi-bin/ti4-map-generator-cgi.py",
 				{get_layouts: true});
@@ -229,7 +265,10 @@
 						tech_weight: $("#tech_weight").val(),
 						trait_weight: $("#trait_weight").val(),
 						hires: $("#hires").prop("checked"),
-						seed: $("#seed").val()
+						seed: $("#seed").val(),
+                        use_ring_balance: $("#use_ring_balance").prop("checked"),
+						ring_balance_weight: $("#ring_balance_weight").val(),
+						ring_balance: $("#ring_balance_value").html()
 					});
 				get.done(function(data) {
 					$("#galaxy_image_div").html(data);

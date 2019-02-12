@@ -115,6 +115,11 @@ def generate_galaxy(args):
         cmd += ["--tech_weight", str(float(args["tech_weight"].value))]
     if "trait_weight" in args:
         cmd += ["--trait_weight", str(float(args["trait_weight"].value))]
+    if "ring_balance_weight" in args:
+        cmd += ["--ring_balance_weight", str(float(args["ring_balance_weight"].value))]
+
+    if "ring_balance" in args and "use_ring_balance" in args and args["use_ring_balance"].value == "true":
+        cmd += ["--ring_balance", str(float(args["ring_balance"].value))]
 
     p = subprocess.Popen(cmd,
         stdout=subprocess.PIPE, stderr=subprocess.PIPE)
