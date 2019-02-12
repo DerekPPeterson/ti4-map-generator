@@ -19,6 +19,9 @@
 #define BACKWARD_HAS_BFD 1
 #include "backward-cpp/backward.hpp"
 
+#define MIN(a,b) (((a)<(b))?(a):(b))
+#define MAX(a,b) (((a)>(b))?(a):(b))
+
 using json = nlohmann::json;
 using namespace std;
 
@@ -314,6 +317,7 @@ class Galaxy
     Scores calculate_shares(double_tile_map stakes);
     float apply_penalties(double_tile_map distances);
     float calculate_trait_variance(double_tile_map stakes);
+    float calculate_ring_balance(map<Tile*, float>);
     vector<pair<Tile*, Tile*>> make_swap_list();
     bool is_wormhole_near_creuss(int near_dist, double_tile_map distances);
     bool is_supernova_near_muaat(int near_dist, double_tile_map distances);
@@ -842,7 +846,8 @@ double_tile_map Galaxy::calculate_stakes(double_tile_map distances)
     return stakes;
 }
 
-float average(list<float> l) 
+template <class T>
+float average(T l) 
 {
     float sum = 0;
     for (auto it : l) {
@@ -851,7 +856,8 @@ float average(list<float> l)
     return sum / l.size();
 }
 
-float coefficient_of_variation(list<float> l) {
+template<class T>
+float coefficient_of_variation(T l) {
     float sum = 0;
     float avg = average(l);
     for (auto it : l) {
@@ -1144,6 +1150,60 @@ float Galaxy::calculate_trait_variance(double_tile_map stakes)
     return coefficient_of_variation(counts);
 }
 
+float Galaxy::calculate_ring_balance(map<Tile*, float> distances_from_mecatol) {
+    vector<vector<Tile*>> tilesByRing;
+    tilesByRing.resize(3);
+
+    vector<float> resByRing = {0, 0, 0};
+    vector<float> infByRing = {0, 0, 0};
+    vector<float> techByRing = {0, 0, 0};
+    vector<int> countByRing = {0, 0, 0};
+
+    // add up res/inf/tech values by ring
+    for (auto [tile, distance] : distances_from_mecatol) {
+        if (tile->is_home_system()) {
+            continue;
+        }
+        int ring;
+        if (distance <= 1) {
+            ring = 0;
+        } else if (distance <= 2) {
+            ring = 1;
+        } else {
+            ring = 2;
+        }
+        
+        resByRing[ring] += tile->get_resource_value();
+        infByRing[ring] += tile->get_influence_value();
+        techByRing[ring] += tile->get_techcolor() ? 1 : 0;
+        countByRing[ring]++;
+    }
+
+    // calc average values per ring
+    for (int ring = 0; ring < 3; ring++) {
+        resByRing[ring] /= max(countByRing[ring], 1);
+        infByRing[ring] /= max(countByRing[ring], 1);
+        techByRing[ring] /= max(countByRing[ring], 1);
+    }
+
+    // skew toward mecatol based on ring_balance
+    resByRing[0] /= evaluate_options["ring_balance"];
+    infByRing[0] /= evaluate_options["ring_balance"];
+    techByRing[0] /= evaluate_options["ring_balance"];
+
+    resByRing[2] *= evaluate_options["ring_balance"];
+    infByRing[2] *= evaluate_options["ring_balance"];
+    techByRing[2] *= evaluate_options["ring_balance"];
+
+    float ringScore = 
+        coefficient_of_variation(resByRing) * evaluate_options["resource_weight"]
+        + coefficient_of_variation(infByRing) * evaluate_options["influence_weight"]
+        + coefficient_of_variation(techByRing) * evaluate_options["tech_weight"];
+    ringScore /= 3;
+
+    return ringScore;
+}
+
 float Galaxy::evaluate_grid() {
     
     double_tile_map distances_from_home_systems;
@@ -1151,11 +1211,17 @@ float Galaxy::evaluate_grid() {
     for (auto home_system : home_systems) {
         distances_from_home_systems[home_system] = distance_to_other_tiles(home_system);
     }
+    auto distances_from_mecatol = distance_to_other_tiles(mecatol);
+
     stakes = calculate_stakes(distances_from_home_systems);
 
     float score = 0;
 
     scores = calculate_shares(stakes);
+
+    if (evaluate_options.count("ring_balance")) {
+        score += calculate_ring_balance(distances_from_mecatol) * evaluate_options["ring_balance_weight"];
+    }
 
     score += apply_penalties(distances_from_home_systems);
 
@@ -1303,6 +1369,8 @@ int main(int argc, char *argv[]) {
             ("influence_weight", "Relative weight of infuence variance", cxxopts::value<float>()->default_value("1.0"))
             ("trait_weight", "Relative weight of planet trait variance", cxxopts::value<float>()->default_value("0.3"))
             ("tech_weight", "Relative weight of tech specialty variance", cxxopts::value<float>()->default_value("1.0"))
+            ("ring_balance_weight", "Relative weight of ring balancing", cxxopts::value<float>()->default_value("1.0"))
+            ("ring_balance", "Put higher value systems closer/farther balanced from mecatol", cxxopts::value<float>())
             ;
     auto result = options.parse(argc, argv);
 
@@ -1369,9 +1437,15 @@ int main(int argc, char *argv[]) {
             result["tech_weight"].as<float>());
     galaxy.set_evaluate_option("tech_weight", 
             result["trait_weight"].as<float>());
+    galaxy.set_evaluate_option("ring_balance_weight", 
+            result["ring_balance_weight"].as<float>());
 
     if (result.count("pie_slice_assignment")) {
         galaxy.set_evaluate_option("pie_slice_assignment", 1);
+    }
+
+    if (result.count("ring_balance")) {
+        galaxy.set_evaluate_option("ring_balance", result["ring_balance"].as<float>());
     }
 
     galaxy.optimize_grid();
