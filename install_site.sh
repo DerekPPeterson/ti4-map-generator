@@ -2,7 +2,7 @@
 
 INSTALL_SITE_PATH=/var/www/html/
 
-cmake ./
+CC=clang CXX=clang++ cmake ./
 make 
 rsync ti4-map-generator site/cgi-bin
 rsync -avzP site/ $INSTALL_SITE_PATH

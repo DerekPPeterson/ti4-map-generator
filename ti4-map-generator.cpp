@@ -1160,14 +1160,16 @@ float Galaxy::calculate_ring_balance(map<Tile*, float> distances_from_mecatol) {
     vector<int> countByRing = {0, 0, 0};
 
     // add up res/inf/tech values by ring
-    for (auto [tile, distance] : distances_from_mecatol) {
+    for (pair<Tile*, float> p : distances_from_mecatol) {
+	Tile* tile = p.first;
+	float distance = p.second;
         if (tile->is_home_system()) {
             continue;
         }
         int ring;
-        if (distance <= 1) {
+        if (distance <= 1.0) {
             ring = 0;
-        } else if (distance <= 2) {
+        } else if (distance <= 2.0) {
             ring = 1;
         } else {
             ring = 2;
