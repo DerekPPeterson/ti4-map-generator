@@ -1005,7 +1005,7 @@ int Galaxy::count_adjacent_anomalies()
     for (auto t : placed_tiles) {
         if (t->get_anomaly() and t->get_anomaly() != EMPTY) {
             for (auto a : get_adjacent(t)) {
-                if (a->get_anomaly() and t->get_anomaly() != EMPTY) {
+                if (a->get_anomaly() and a->get_anomaly() != EMPTY) {
                     count++;
                 }
             }
