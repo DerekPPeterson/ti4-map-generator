@@ -84,7 +84,7 @@
 					"tech": "NO_TECH"
 				},
 				{
-					"name": "Rescuilon",
+					"name": "Resculon",
 					"resources": 2,
 					"influence": 0,
 					"trait": "CULTURAL",
@@ -112,7 +112,7 @@
 			"anomaly": "NO_ANOMALY",
 			"planets": [
 				{
-					"name": "Quecen'n",
+					"name": "Qucen'n",
 					"resources": 1,
 					"influence": 2,
 					"trait": "INDUSTRIAL",
@@ -259,7 +259,7 @@
 			"anomaly": "NO_ANOMALY",
 			"planets": [
 				{
-					"name": "VERFUT II",
+					"name": "Vefut II",
 					"resources": 2,
 					"influence": 2,
 					"trait": "HAZARDOUS",
@@ -533,7 +533,7 @@
 		},
 		{
 			"number": 5,
-			"race": "The Aborec",
+			"race": "The Arborec",
 			"wormhole": "NO_WORMHOLE",
 			"anomaly": "NO_ANOMALY",
 			"planets": [
@@ -620,7 +620,7 @@
 		},
 		{
 			"number": 10,
-			"race": "The Baroney of Letnev",
+			"race": "The Barony of Letnev",
 			"wormhole": "NO_WORMHOLE",
 			"anomaly": "NO_ANOMALY",
 			"planets": [
@@ -690,7 +690,7 @@
 		},
 		{
 			"number": 13,
-			"race": "Sardakk'Norr",
+			"race": "Sardakk N'orr",
 			"wormhole": "NO_WORMHOLE",
 			"anomaly": "NO_ANOMALY",
 			"planets": [
@@ -759,7 +759,7 @@
 		},
 		{
 			"number": 16,
-			"race": "The Emerates of Hacan",
+			"race": "The Emirates of Hacan",
 			"wormhole": "NO_WORMHOLE",
 			"anomaly": "NO_ANOMALY",
 			"planets": [
@@ -805,20 +805,4 @@
 		}
 	]
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
