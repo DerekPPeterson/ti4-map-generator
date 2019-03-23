@@ -99,6 +99,11 @@ def generate_galaxy(args):
     elif args["muaat_gets_supernova"].value == "false":
         cmd += ["--muaat_gets_supernova", "0"]
 
+    if "saar_get_asteroids" in args and args["saar_get_asteroids"].value == "true":
+        cmd += ["--saar_get_asteroids", "1"]
+    elif args["saar_get_asteroids"].value == "false":
+        cmd += ["--saar_get_asteroids", "0"]
+
     if "winnu_clear_path_to_mecatol" in args and args["winnu_clear_path_to_mecatol"].value == "true":
         cmd += ["--winnu_have_clear_path_to_mecatol", "1"]
     elif args["winnu_clear_path_to_mecatol"].value == "false":

@@ -321,6 +321,7 @@ class Galaxy
     vector<pair<Tile*, Tile*>> make_swap_list();
     bool is_wormhole_near_creuss(int near_dist, double_tile_map distances);
     bool is_supernova_near_muaat(int near_dist, double_tile_map distances);
+    bool is_asteroid_near_saar(int near_dist, double_tile_map distances);
     bool winnu_have_clear_path_to_mecatol(double_tile_map distances);
 
 
@@ -945,6 +946,31 @@ bool Galaxy::is_wormhole_near_creuss(int near_dist, double_tile_map distances)
     return false;
 }
 
+bool Galaxy::is_asteroid_near_saar(int near_dist, double_tile_map distances)
+{
+    // Check to see if saar is in this game
+    int saar_tile_number = 11;
+    Tile* saar_home_tile = NULL;
+    for (auto hs : home_systems) {
+        if (hs->get_number() == saar_tile_number) {
+            saar_home_tile = hs;
+        }
+    }
+    // No penalty if saar are not in this game
+    if (not saar_home_tile) {
+        return 0;
+    }
+
+    for (auto t : placed_tiles) {
+        if (t->get_anomaly() == ASTEROID_FIELD) {
+            if (distances[saar_home_tile][t] <= near_dist) {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
 void Galaxy::set_evaluate_option(string name, float val)
 {
     evaluate_options[name] = val;
@@ -1107,6 +1133,13 @@ float Galaxy::apply_penalties(double_tile_map distances)
                     distances)) {
             total_penalty += 10;
             scores.penalties["cruess does not have wormhole (x10)"] = 10;
+        }
+    }
+    if (evaluate_options["saar_get_asteroids"]) {
+        if (not is_asteroid_near_saar(evaluate_options["saar_get_asteroids"], 
+                    distances)) {
+            total_penalty += 10;
+            scores.penalties["Saar do not have asteroids (x10)"] = 10;
         }
     }
     if (evaluate_options["winnu_have_clear_path_to_mecatol"]) {
@@ -1367,6 +1400,7 @@ int main(int argc, char *argv[]) {
             ("creuss_gets_wormhole", "If creuss in game place a wormhole within x distance of it", cxxopts::value<int>()->default_value("1"))
             ("muaat_gets_supernova", "If muaat in game place the supernova within x distance of it", cxxopts::value<int>()->default_value("1"))
             ("winnu_have_clear_path_to_mecatol", "If winnu in game give them a clear path to mecatol", cxxopts::value<int>()->default_value("1"))
+            ("saar_get_asteroids", "If Saar are in the game give them an asteroid field", cxxopts::value<int>()->default_value("1"))
             ("resource_weight", "Relative weight of resource variance", cxxopts::value<float>()->default_value("1.0"))
             ("influence_weight", "Relative weight of infuence variance", cxxopts::value<float>()->default_value("1.0"))
             ("trait_weight", "Relative weight of planet trait variance", cxxopts::value<float>()->default_value("0.3"))
@@ -1430,6 +1464,8 @@ int main(int argc, char *argv[]) {
             result["muaat_gets_supernova"].as<int>());
     galaxy.set_evaluate_option("winnu_have_clear_path_to_mecatol", 
             result["winnu_have_clear_path_to_mecatol"].as<int>());
+    galaxy.set_evaluate_option("saar_get_asteroids", 
+            result["saar_get_asteroids"].as<int>());
 
     galaxy.set_evaluate_option("resource_weight", 
             result["resource_weight"].as<float>());
