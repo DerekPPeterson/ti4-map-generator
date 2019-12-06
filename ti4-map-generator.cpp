@@ -127,8 +127,9 @@ class Tile
     Location location;
     string race;
 
-    int resources;
-    int influence;
+    int resources = 0;
+    int influence = 0;
+    float res_inf = 0;
 
     public:
     Tile(int);
@@ -144,6 +145,7 @@ class Tile
     Location get_location();
     int get_resource_value();
     int get_influence_value();
+    float get_res_inf_value();
     list<Planet> get_planets();
     string get_race();
     bool is_home_system();
@@ -168,6 +170,11 @@ int Tile::get_resource_value()
 int Tile::get_influence_value()
 {
     return influence;
+}
+
+float Tile::get_res_inf_value()
+{
+    return res_inf;
 }
 
 int Tile::get_number() {
@@ -237,9 +244,11 @@ Tile::Tile(int n, list<Planet> p, Wormhole w, Anomaly a)
 
     resources = 0;
     influence = 0;
+    res_inf = 0;
     for (auto planet : planets) {
         resources += planet.resources;
         influence += planet.influence;
+        res_inf += max(1.0 * planet.resources, planet.influence * 0.667);
     }
 }
 
@@ -253,9 +262,11 @@ Tile::Tile(int n, list<Planet> p, string race1)
 
     resources = 0;
     influence = 0;
+    res_inf = 0;
     for (auto planet : planets) {
         resources += planet.resources;
         influence += planet.influence;
+        res_inf += max(1.0 * planet.resources, planet.influence * 0.667);
     }
 }
 
@@ -276,6 +287,7 @@ typedef struct Scores
     map<Tile*, float> influence_share;
     map<Tile*, float> res_inf_share;
     map<Tile*, float> tech_share;
+    map<Tile*, float> first_turn_share;
 
     map<string, float> penalties;
 } Scores;
@@ -317,6 +329,7 @@ class Galaxy
     Scores calculate_shares(double_tile_map stakes);
     float apply_penalties(double_tile_map distances);
     float calculate_trait_variance(double_tile_map stakes);
+    float first_turn_variance(double_tile_map stakes, Scores& scores);
     float calculate_ring_balance(map<Tile*, float>);
     vector<pair<Tile*, Tile*>> make_swap_list();
     bool is_wormhole_near_creuss(int near_dist, double_tile_map distances);
@@ -774,6 +787,7 @@ map<Tile*, float> Galaxy::distance_to_other_tiles(Tile* t1) {
                 case ASTEROID_FIELD: move_cost = 1.5; break;
                 case SUPERNOVA: continue;
                 case GRAVITY_RIFT: move_cost = 1; break; 
+                case EMPTY: move_cost = 1.2; break; 
                 default : move_cost = 1;
             }
 
@@ -1055,6 +1069,20 @@ int Galaxy::count_adjacent_wormholes()
     return count;
 }
 
+float Galaxy::first_turn_variance(double_tile_map stakes, Scores& scores)
+{
+    list<float> first_turn_shares;
+    for (auto home_system : home_systems) {
+        float res_inf = 0;
+        for (auto tile : get_adjacent(home_system)) {
+            res_inf += tile->get_res_inf_value() * stakes[tile][home_system];
+        }
+        first_turn_shares.push_back(res_inf);
+        scores.first_turn_share[home_system] = res_inf;
+    }
+    return coefficient_of_variation(first_turn_shares);
+}
+
 Scores Galaxy::calculate_shares(double_tile_map stakes)
 {
     Scores scores;
@@ -1074,13 +1102,13 @@ Scores Galaxy::calculate_shares(double_tile_map stakes)
             float inf = tile->get_influence_value() * stakes[tile][home_system];
             resource_share += res;
             influence_share += inf;
-            res_inf_share += max(res, inf * evaluate_options["res_value_of_inf"]);
+            res_inf_share += tile->get_res_inf_value() * stakes[tile][home_system];
             tech_share += tile->get_techcolor() ? stakes[tile][home_system] : 0;
         }
         scores.resource_share[home_system] = resource_share;
         scores.influence_share[home_system] = influence_share;
+        scores.res_inf_share[home_system] = res_inf_share;
         scores.tech_share[home_system] = tech_share;
-        scores.res_inf_share[home_system] = tech_share;
 
         total_resources += resource_share;
         total_influence += influence_share;
@@ -1254,6 +1282,8 @@ float Galaxy::evaluate_grid() {
 
     scores = calculate_shares(stakes);
 
+    score += first_turn_variance(stakes, scores) * evaluate_options["first_turn"]; 
+
     if (evaluate_options.count("ring_balance")) {
         score += calculate_ring_balance(distances_from_mecatol) * evaluate_options["ring_balance_weight"];
     }
@@ -1265,6 +1295,7 @@ float Galaxy::evaluate_grid() {
     score += coefficient_of_variation(get_values_of_map(scores.resource_share)) * evaluate_options["resource_weight"]
            + coefficient_of_variation(get_values_of_map(scores.influence_share)) * evaluate_options["influence_weight"]
            + coefficient_of_variation(get_values_of_map(scores.tech_share)) * evaluate_options["tech_weight"];
+    score += coefficient_of_variation(get_values_of_map(scores.res_inf_share)) * evaluate_options["res_inf_weight"];; 
 
     return score;
 }
@@ -1357,6 +1388,8 @@ void Galaxy::write_json(string filename)
         j["scores"][hs->get_race()]["resource"] = scores.resource_share[hs];
         j["scores"][hs->get_race()]["influence"] = scores.influence_share[hs];
         j["scores"][hs->get_race()]["tech"] = scores.tech_share[hs];
+        j["scores"][hs->get_race()]["res_inf"] = scores.res_inf_share[hs];
+        j["scores"][hs->get_race()]["first_turn"] = scores.first_turn_share[hs];
 
     }
 
@@ -1403,10 +1436,13 @@ int main(int argc, char *argv[]) {
             ("saar_get_asteroids", "If Saar are in the game give them an asteroid field", cxxopts::value<int>()->default_value("1"))
             ("resource_weight", "Relative weight of resource variance", cxxopts::value<float>()->default_value("1.0"))
             ("influence_weight", "Relative weight of infuence variance", cxxopts::value<float>()->default_value("1.0"))
+            ("res_inf_weight", "Relative weight of max(res,2/3inf)", cxxopts::value<float>()->default_value("1.0"))
             ("trait_weight", "Relative weight of planet trait variance", cxxopts::value<float>()->default_value("0.3"))
             ("tech_weight", "Relative weight of tech specialty variance", cxxopts::value<float>()->default_value("1.0"))
+            ("first_turn", "Relative weight of first turn res+2/3inf", cxxopts::value<float>()->default_value("1.0"))
             ("ring_balance_weight", "Relative weight of ring balancing", cxxopts::value<float>()->default_value("1.0"))
             ("ring_balance", "Put higher value systems closer/farther balanced from mecatol", cxxopts::value<float>())
+            ("res_value_of_inf", "Relative weight of ring balancing", cxxopts::value<float>()->default_value("0.667"))
             ;
     auto result = options.parse(argc, argv);
 
@@ -1469,6 +1505,8 @@ int main(int argc, char *argv[]) {
 
     galaxy.set_evaluate_option("resource_weight", 
             result["resource_weight"].as<float>());
+    galaxy.set_evaluate_option("res_inf_weight", 
+            result["res_inf_weight"].as<float>());
     galaxy.set_evaluate_option("influence_weight", 
             result["influence_weight"].as<float>());
     galaxy.set_evaluate_option("tech_weight", 
@@ -1477,6 +1515,10 @@ int main(int argc, char *argv[]) {
             result["trait_weight"].as<float>());
     galaxy.set_evaluate_option("ring_balance_weight", 
             result["ring_balance_weight"].as<float>());
+    galaxy.set_evaluate_option("res_value_of_inf", 
+            result["res_value_of_inf"].as<float>());
+    galaxy.set_evaluate_option("first_turn", 
+            result["first_turn"].as<float>());
 
     if (result.count("pie_slice_assignment")) {
         galaxy.set_evaluate_option("pie_slice_assignment", 1);

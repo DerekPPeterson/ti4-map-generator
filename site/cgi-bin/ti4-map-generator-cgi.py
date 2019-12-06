@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python2
 
 import cgi
 import random
@@ -112,6 +112,10 @@ def generate_galaxy(args):
     if "include_all_wormholes" in args and args["include_all_wormholes"].value == "true":
         cmd += ["--mandatory_tiles", "25 26 39 40"]
 
+    if "res_inf_weight" in args:
+        cmd += ["--res_inf_weight", str(float(args["res_inf_weight"].value))]
+    if "first_turn" in args:
+        cmd += ["--first_turn", str(float(args["first_turn"].value))]
     if "resource_weight" in args:
         cmd += ["--resource_weight", str(float(args["resource_weight"].value))]
     if "influence_weight" in args:
@@ -207,13 +211,15 @@ def return_stats(args):
     races = galaxy["scores"].keys()
     races.sort()
 
-    score_data = [["Race", "Resource Share", "Influence Share", "Tech Share"]]
+    score_data = [["Race", "Resource Share", "Influence Share", "Tech Share", "max(Resouces, 2/3 * Influence)", "First Turn Share"]]
     for race in races:
         score_data.append([
             race,
             "{:.3f}".format(galaxy["scores"][race]["resource"]),
             "{:.3f}".format(galaxy["scores"][race]["influence"]),
-            "{:.3f}".format(galaxy["scores"][race]["tech"])
+            "{:.3f}".format(galaxy["scores"][race]["tech"]),
+            "{:.3f}".format(galaxy["scores"][race]["res_inf"]),
+            "{:.3f}".format(galaxy["scores"][race]["first_turn"])
         ])
     print "<h3>Resource shares by race</h3>"
     print create_html_table("score_stats", score_data)

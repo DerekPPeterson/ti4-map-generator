@@ -55,14 +55,18 @@
             <input type="range" min="0" max="5" step="0.1" value="1" class="slider" id="ring_balance_weight"><span id="ring_balance_weight_value"></span>
             </span><br><br>
 
-			<label title="Relative importance of resource equity when evaluating map quality" style="width: 200px" for="resource_weight">Resource Weighting:</label>
-            <input type="range" min="0" max="5" step="0.1" value="1" class="slider" id="resource_weight"><span id="resource_weight_value"></span><br>
-			<label title="Relative importance of influence equity when evaluating map quality" style="width: 200px"for="influence_weight">Influence Weighting:</label>
-			<input type="range" min="0" max="5" step="0.1" value="1" class="slider" id="influence_weight"><span id="influence_weight_value"></span><br>
-			<label title="Relative importance of tech specialty equity when evaluating map quality"style="width: 200px"for="tech_weight">Tech Specialty Weighting:</label>
-			<input type="range" min="0" max="5" step="0.1" value="1" class="slider" id="tech_weight"><span id="tech_weight_value"></span><br><br>
-			<label title="Relative importance of planet trait equity"style="width: 200px"for="trait_weight">Planet Trait Weighting</label>
-            <input type="range" min="0" max="5" step="0.1" value="0.3" class="slider" id="trait_weight"><span id="trait_weight_value"></span><br><br>
+			<label title="Relative importance of max usable resouces and influence (res_inf_for_planet = max(res, 2/3*inf)" style="width: 300px" for="res_inf_weight">Max Usable Res/Inf Weighting:</label>
+            <input type="range" min="0" max="5" step="0.1" value="1" class="slider" id="res_inf_weight"><span id="res_inf_weight_value"></span><br>
+			<label title="Relative importance of max usable resources and influence adjacent to home system" style="width: 300px" for="first_turn">First Turn Weighting</label>
+            <input type="range" min="0" max="5" step="0.1" value="1" class="slider" id="first_turn"><span id="first_turn_value"></span><br>
+			<label title="Relative importance of resource equity when evaluating map quality" style="width: 300px" for="resource_weight">Resource Weighting:</label>
+            <input type="range" min="0" max="5" step="0.1" value="0.5" class="slider" id="resource_weight"><span id="resource_weight_value"></span><br>
+			<label title="Relative importance of influence equity when evaluating map quality" style="width: 300px"for="influence_weight">Influence Weighting:</label>
+			<input type="range" min="0" max="5" step="0.1" value="0.5" class="slider" id="influence_weight"><span id="influence_weight_value"></span><br>
+			<label title="Relative importance of tech specialty equity when evaluating map quality"style="width: 300px"for="tech_weight">Tech Specialty Weighting:</label>
+			<input type="range" min="0" max="5" step="0.1" value="0.3" class="slider" id="tech_weight"><span id="tech_weight_value"></span><br><br>
+			<label title="Relative importance of planet trait equity"style="width: 300px"for="trait_weight">Planet Trait Weighting</label>
+            <input type="range" min="0" max="5" step="0.1" value="0.2" class="slider" id="trait_weight"><span id="trait_weight_value"></span><br><br>
 
 			<label title="Creuss will have at least one wormhole tile next to it's home system, provided both Creuss and a wormhole tile are in the map"><input type="CHECKBOX" id="creuss_gets_wormhole" name="creuss_gets_wormhole" checked>Give the Ghosts of Creuss a Wormhole</label><br>
 			<label title="Muaat will have the supernova placed next to its home system, provided both Muatt and a supernova are in the map"><input type="CHECKBOX" id="muaat_gets_supernova" name="muaat_gets_supernova" checked>Give the Embers of Muaat a Supernova</label><br>
@@ -221,6 +225,8 @@
             set_slider_update("tech_weight");
             set_slider_update("trait_weight");
             set_slider_update("ring_balance_weight");
+            set_slider_update("res_inf_weight");
+            set_slider_update("first_turn");
             set_slider_update_logarithmic("ring_balance");
 
 			var layouts_get = $.get("./cgi-bin/ti4-map-generator-cgi.py",
@@ -263,6 +269,8 @@
 						saar_get_asteroids: $("#saar_get_asteroids").prop("checked"),
 						winnu_clear_path_to_mecatol: $("#winnu_clear_path_to_mecatol").prop("checked"),
 						include_all_wormholes: $("#include_all_wormholes").prop("checked"),
+						res_inf_weight: $("#res_inf_weight").val(),
+						first_turn: $("#first_turn").val(),
 						resource_weight: $("#resource_weight").val(),
 						influence_weight: $("#influence_weight").val(),
 						tech_weight: $("#tech_weight").val(),
