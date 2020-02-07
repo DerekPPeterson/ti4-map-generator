@@ -1073,10 +1073,12 @@ float Galaxy::first_turn_variance(double_tile_map stakes, Scores& scores)
 {
     list<float> first_turn_shares;
     for (auto home_system : home_systems) {
-        float res_inf = 0;
+        vector<float> res_infs;
         for (auto tile : get_adjacent(home_system)) {
-            res_inf += tile->get_res_inf_value() * stakes[tile][home_system];
+            res_infs.push_back(tile->get_res_inf_value() * stakes[tile][home_system]);
         }
+        sort(res_infs.begin(), res_infs.end(), [](float a, float b) {return a > b;});
+        float res_inf = res_infs[0] + res_infs[1];
         first_turn_shares.push_back(res_inf);
         scores.first_turn_share[home_system] = res_inf;
     }
