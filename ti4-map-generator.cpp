@@ -16,8 +16,8 @@
 #include "json.hpp"
 #include "cxxopts.hpp"
 
-#define BACKWARD_HAS_BFD 1
-#include "backward-cpp/backward.hpp"
+//#define BACKWARD_HAS_BFD 1
+//#include "backward-cpp/backward.hpp"
 
 #define MIN(a,b) (((a)<(b))?(a):(b))
 #define MAX(a,b) (((a)>(b))?(a):(b))
@@ -1346,7 +1346,7 @@ void Galaxy::optimize_grid()
         for (auto swap : swaps) {
             swap_tiles(swap.first, swap.second);
             float new_score = evaluate_grid();
-            if (new_score < current_score) {
+            if (new_score > current_score) {
                 better_score_found = true;
                 current_score = new_score;
                 printf("Swapping tiles %d & %d, new_score: %0.3f\n", 
