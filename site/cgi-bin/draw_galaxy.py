@@ -236,13 +236,14 @@ def create_galaxy_string_from_grid(grid, centre):
     n_visted = 0
 
     for c in spiral_pattern(centre):
-        try:
-            val = grid[c[0]][c[1]]
-            if val != 0:
-                n_visted += 1
-        except IndexError:
-            # if the spiral pattern goes outside the grid enter a 0
+        # if the spiral pattern goes outside the grid enter a 0
+        if c[0] < 0 or c[0] >= len(grid) or c[1] < 0 or c[1] >= len(grid[c[0]]):
             val = 0
+        else:
+            val = grid[c[0]][c[1]]
+
+        if val != 0:
+            n_visted += 1
 
         # Blank home systems are in grid as negative numbers, but output them
         # as 0
