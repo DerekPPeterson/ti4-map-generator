@@ -117,7 +117,7 @@ def calculate_line_end_adjust_angle(grid, wc):
         math.radians(30): [1, 0]
     }
 
-    line_coords = [tuple(calc_coordinates(gl[0], gl[1], len(grid) / 2)) for gl in wc]
+    line_coords = [tuple(calc_coordinates(gl[0], gl[1], len(grid))) for gl in wc]
     # angle from centre of one tile to centre of other
     direct_angle = -(math.atan2(line_coords[1][1] - line_coords[0][1],
                                 line_coords[1][0] - line_coords[0][0]))
@@ -161,7 +161,7 @@ def draw_warp_lines(grid, warp_connections, image):
         angles[0] = calculate_line_end_adjust_angle(grid, wc)
         angles[1] = calculate_line_end_adjust_angle(grid, [wc[1], wc[0]])
 
-        line_coords = [list(calc_coordinates(gl[0], gl[1], len(grid) / 2)) for gl in wc]
+        line_coords = [list(calc_coordinates(gl[0], gl[1], len(grid))) for gl in wc]
         line_coords = [[c[0] + TILE_IMAGE_X / 2, c[1] + TILE_IMAGE_Y / 2] for c in line_coords]
         #print line_coords
 
@@ -182,7 +182,7 @@ def create_galaxy_image_from_json_data(galaxy):
 
     width = int(TILE_IMAGE_X * len(grid))
     max_length = max([len(tmp) for tmp in grid])
-    height = int(TILE_IMAGE_Y * max_length + TILE_IMAGE_Y / 2 * len(grid) / 2)
+    height = int(TILE_IMAGE_Y * max_length + TILE_IMAGE_Y / 2 * len(grid))
     output = Image.new('RGBA', (width, height), (0, 0, 0, 0))
     txt = Image.new('RGBA', (width, height), (255, 255, 255, 0))
     d = ImageDraw.Draw(txt)
@@ -202,8 +202,8 @@ def create_galaxy_image_from_json_data(galaxy):
             tile_image = get_tile_image(grid[i][j])
             if (tile_image is None):
                 continue
-            coords = calc_coordinates(i, j, len(grid) / 2)
-            text_coords = calc_text_coords(i, j, len(grid) / 2)
+            coords = calc_coordinates(i, j, len(grid))
+            text_coords = calc_text_coords(i, j, len(grid))
             output.paste(tile_image, coords, tile_image)
             if DISPLAY_TYPE == DisplayType.NumbersOnly:
                 text_color = (0, 0, 0, 255)
