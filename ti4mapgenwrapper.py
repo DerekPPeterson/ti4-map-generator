@@ -5,6 +5,7 @@ import string
 import subprocess
 import json
 import os
+import drawgalaxy
 
 TMP_DIR = '/tmp/'
 
@@ -129,5 +130,13 @@ def create_galaxy_string_from_grid(grid, centre):
 
 
 if __name__ == "__main__":
-    print(generate_galaxy({"layout":"./site/res/layouts/standard_hex.json",
-                           "tiles":"./site/cgi-bin/tiles.json"}))
+    galaxy = generate_galaxy({"layout":"./site/res/layouts/standard_hex.json",
+                              "tiles":"./site/cgi-bin/tiles.json"})
+    print(galaxy)
+    print("Loading images")
+    gd = drawgalaxy.GalaxyDrawer("./site/res/", "small-tile", 198, 172, "./site/res/Slider Regular.ttf", drawgalaxy.DisplayType.TileImagesWithNumbers)
+    print("Creating image 1")
+    image = gd.create_image(galaxy)
+    image.save("./galaxy.png", "PNG")
+    
+    
