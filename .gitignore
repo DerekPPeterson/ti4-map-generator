@@ -13,4 +13,5 @@ ti4-map-generator
 galaxy.json
 galaxy.png
 .ccls-cache
+db.sqlite3
 
