@@ -37,7 +37,7 @@ def remove_other_chars(s, allowed):
 
 
 GENERATE_ARGS = {
-    "n_players": int,
+    "players": int,
     "seed": int,
     "layout": str,
     "race_selection_method": str,
