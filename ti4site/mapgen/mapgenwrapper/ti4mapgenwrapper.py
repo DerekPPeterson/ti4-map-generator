@@ -6,6 +6,11 @@ import subprocess
 import json
 import os
 #import drawgalaxy
+from copy import deepcopy
+
+import logging
+
+logger = logging.getLogger(__name__)
 
 TMP_DIR = '/tmp/'
 
@@ -59,30 +64,27 @@ GENERATE_ARGS = {
 }
 
 def generate_galaxy(args):
-    n_players = 6
-    if "n_players" in args:
-        n_players = int(args["n_players"])
+    args = deepcopy(args)
 
+    # we only return a dictionary, rather than having user of this function
+    # choose a location to output 
     galaxy_json_filename = os.path.join(TMP_DIR, 
                                         "galaxy_%s.json" % random_string(10))
 
-    if "seed" in args:
-        seed = int(args["seed"])
-    else:
-        random.seed()
-        seed = random.randint(1000000,9999999)
+    if "seed" not in args:
+        args["seed"] = random.randint(1000000,9999999)
 
     cmd = [os.path.join(os.path.abspath(os.path.dirname(__file__)), 
                         "ti4-map-generator"),
            "-o", galaxy_json_filename,
-           "-p", str(n_players),
-           "-s", str(seed)]
+           ]
 
     for arg, value in args.items():
         arg_type = GENERATE_ARGS[arg]
         arg_str = str(arg_type(value))
         cmd += [f"--{arg}", arg_str]
 
+    logger.debug(f'Running ti4-map-generator with command: {" ".join(cmd)}')
     p = subprocess.Popen(cmd,
         stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     p.wait()
@@ -92,7 +94,7 @@ def generate_galaxy(args):
 
     with open(galaxy_json_filename, "r") as f:
         generated = dict(json.load(f))
-    generated["seed"] = seed
+    generated["seed"] = args["seed"]
 
     galaxy_string = create_galaxy_string_from_grid(generated["grid"], generated["mecatol"])
     generated["galaxy_string"] = galaxy_string
